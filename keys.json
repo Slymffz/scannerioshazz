@@ -1,7 +1,7 @@
 {
   "keys": [
     {
-      "key": "hazzscreens",
+      "key": "HAZZSCREENS",
       "plan": "vitalicio",
       "created_at": "2026-01-20T10:00:00Z",
       "expires_at": null,
@@ -9,7 +9,7 @@
       "user": "admin@kernelbypass.com"
     },
     {
-      "key": "orglagarto",
+      "key": "ORGLAGARTO",
       "plan": "mensal",
       "created_at": "2026-07-01T10:00:00Z",
       "expires_at": null,
