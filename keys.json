@@ -1,7 +1,7 @@
 {
   "keys": [
     {
-      "key": "TRAP-ADMIN-2026",
+      "key": "hazzscreens",
       "plan": "vitalicio",
       "created_at": "2026-01-20T10:00:00Z",
       "expires_at": null,
@@ -9,20 +9,12 @@
       "user": "admin@kernelbypass.com"
     },
     {
-      "key": "USER-ABCD-1234-XYZ",
+      "key": "orglagarto",
       "plan": "mensal",
       "created_at": "2026-07-01T10:00:00Z",
-      "expires_at": "2026-08-01T10:00:00Z",
+      "expires_at": null,
       "active": true,
-      "user": "cliente@email.com"
-    },
-    {
-      "key": "TESTE-9999-AAAA-BBBB",
-      "plan": "diario",
-      "created_at": "2026-07-12T10:00:00Z",
-      "expires_at": "2026-07-13T10:00:00Z",
-      "active": true,
-      "user": "teste@email.com"
+      "user": "lagarto@email.com"
     }
   ]
 }
