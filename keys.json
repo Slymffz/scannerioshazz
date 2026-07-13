@@ -10,7 +10,7 @@
     },
     {
       "key": "ORGLAGARTO",
-      "plan": "mensal",
+      "plan": "vitalicio",
       "created_at": "2026-07-01T10:00:00Z",
       "expires_at": null,
       "active": true,
