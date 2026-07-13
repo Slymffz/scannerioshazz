@@ -17,6 +17,14 @@
       "user": "lagarto@email.com"
     },
     {
+      "key": "BOSSALUGUELKEY",
+      "plan": "vitalicio",
+      "created_at": "2026-07-01T10:00:00Z",
+      "expires_at": null,
+      "active": true,
+      "user": "bossaluguel@email.com"
+    },
+    {
       "key": "LAGARTO1D",
       "plan": "diario",
       "created_at": "2026-07-01T10:00:00Z",
