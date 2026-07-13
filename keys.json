@@ -15,6 +15,14 @@
       "expires_at": null,
       "active": true,
       "user": "lagarto@email.com"
+    },
+    {
+      "key": "LAGARTO1D",
+      "plan": "diario",
+      "created_at": "2026-07-01T10:00:00Z",
+      "expires_at": "2026-07-14T10:00:00Z",
+      "active": true,
+      "user": "lagarto1d@email.com"
     }
   ]
 }
