@@ -7,6 +7,13 @@
       "expires_at": null,
       "active": true,
       "user": "admin@kernelbypass.com"
+    },
+    "key": "1",
+      "plan": "vitalicio",
+      "created_at": "2026-01-20T10:00:00Z",
+      "expires_at": null,
+      "active": true,
+      "user": "admin@123.com"
     }
   ]
 }
