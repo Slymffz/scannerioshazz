@@ -415,6 +415,7 @@
     iosEvents.innerHTML = '';
     iosPanel.style.display = 'none';
     fileInput.value = '';
+    if (folderInput) folderInput.value = '';
     dropEl.style.display = 'block';
   }
 
@@ -458,6 +459,46 @@
   });
 
   resetBtn.addEventListener('click', resetUI);
+
+  // ============ UPLOAD DE PASTA JÁ EXTRAÍDA (evita descompactar tar.gz gigante no navegador) ============
+  var folderBtn = document.getElementById('folderBtn');
+  var folderInput = document.getElementById('folderInput');
+  var FOLDER_FILE_SIZE_CAP = 15 * 1024 * 1024; // arquivos individuais acima disso são ignorados (proteção extra)
+
+  if (folderBtn && folderInput) {
+    folderBtn.addEventListener('click', function() { folderInput.click(); });
+    folderInput.addEventListener('change', function() {
+      if (folderInput.files && folderInput.files.length) handleFolderFiles(folderInput.files);
+    });
+  }
+
+  function handleFolderFiles(fileList) {
+    clearError();
+    resultsEl.style.display = 'none';
+    dropEl.style.display = 'none';
+    setProgress(15, 'Lendo pasta (' + fileList.length + ' arquivos)...');
+
+    var fileMap = {};
+    var paths = [];
+    for (var i = 0; i < fileList.length; i++) {
+      var f = fileList[i];
+      var rel = f.webkitRelativePath || f.name;
+      fileMap[rel] = f;
+      paths.push(rel);
+    }
+
+    var archive = {
+      paths: paths,
+      read: function(path) {
+        var f = fileMap[path];
+        if (!f) return Promise.reject(new Error('arquivo não encontrado: ' + path));
+        if (f.size > FOLDER_FILE_SIZE_CAP) return Promise.resolve(''); // ignora arquivos individuais grandes demais
+        return f.text();
+      }
+    };
+
+    processArchive(archive);
+  }
 
   // ============ PROCESSAMENTO DO ARQUIVO ============
   function handleFile(file) {
