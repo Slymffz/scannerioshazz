@@ -74,6 +74,12 @@
     <div class="drop-hint">Aceita bugreport/dumpsys (.zip, .txt) e sysdiagnose (.zip, .tar.gz/.tgz)</div>
   </div>
 
+  <div class="folder-alt-row">
+    <span>Sysdiagnose muito pesado travando o navegador?</span>
+    <button type="button" class="folder-alt-btn" id="folderBtn">📂 Selecionar pasta já extraída</button>
+    <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
+  </div>
+
   <div class="idle-status" id="idleStatus"><span class="idle-dot"></span> AGUARDANDO ARQUIVO...</div>
   <div class="progress-wrap" id="progressWrap">
     <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
