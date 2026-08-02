@@ -145,7 +145,7 @@
     if (emailEl) emailEl.textContent = user;
     if (planEl) planEl.textContent = plan || 'Ativo';
 
-    startMatrixRain();
+    // startMatrixRain(); // desativado — visual agora é preto sólido minimalista
   }
 
   document.getElementById('authPass').addEventListener('keydown', function(e) {
@@ -383,6 +383,42 @@
   var iosEvents = document.getElementById('iosEvents');
   var resetBtn = document.getElementById('resetBtn');
   var scanCountEl = document.getElementById('scanCount');
+
+  // ============ CONTADOR DE USOS GLOBAL (via CountAPI — soma o uso de todos os visitantes) ============
+  // Serviço público e gratuito, sem necessidade de login/token. A chave abaixo só precisa ser única
+  // pra não colidir com o contador de outro site — pode trocar se quiser isolar ainda mais.
+  var COUNTER_BASE = 'https://countapi.mileshilliard.com/api/v1';
+  var COUNTER_KEY = 'kernelbypass_scanner_hazzscreens_v1';
+
+  var scanCountMemoryFallback = 0; // usado só se a API do contador estiver fora do ar/sem internet
+
+  (function initScanCount() {
+    fetch(COUNTER_BASE + '/get/' + COUNTER_KEY)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data && typeof data.value === 'number') {
+          scanCountMemoryFallback = data.value;
+          if (scanCountEl) scanCountEl.textContent = data.value;
+        }
+      })
+      .catch(function() { /* API fora do ar: mantém o número estático que já está no HTML */ });
+  })();
+
+  function incrementScanCount() {
+    fetch(COUNTER_BASE + '/hit/' + COUNTER_KEY)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data && typeof data.value === 'number') {
+          scanCountMemoryFallback = data.value;
+          if (scanCountEl) scanCountEl.textContent = data.value;
+        }
+      })
+      .catch(function() {
+        // Sem conexão com o contador global agora: incrementa só visualmente pra não travar a experiência
+        scanCountMemoryFallback++;
+        if (scanCountEl) scanCountEl.textContent = scanCountMemoryFallback;
+      });
+  }
 
   findingsHeader.addEventListener('click', function() {
     findingsPanel.classList.toggle('collapsed');
@@ -915,8 +951,7 @@
         iosSummary.textContent = allKeys.size + ' identificador(es) de perfil lido(s), nenhum suspeito.';
       }
 
-      var n = parseInt(scanCountEl.textContent, 10) || 0;
-      scanCountEl.textContent = n + 1;
+      incrementScanCount();
     }, 300);
   }
 
@@ -1054,8 +1089,7 @@
     setTimeout(function() {
       progressWrap.style.display = 'none';
       renderResults(matches, device, systemState, targetInfo);
-      var n = parseInt(scanCountEl.textContent, 10) || 0;
-      scanCountEl.textContent = n + 1;
+      incrementScanCount();
     }, 300);
   }
 
