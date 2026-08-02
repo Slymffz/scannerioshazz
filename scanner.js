@@ -1140,10 +1140,19 @@
     }
 
     if (total > 0) {
+      var hasProxyMatch = matches.some(function(m) { return m.group === 'Proxy Externo' || m.group === 'Aplicativo Disfarçado'; });
+      var hasSuspeitaMatch = matches.some(function(m) { return m.group === 'Suspeita'; });
+
       verdictDot.style.background = 'var(--danger)';
-      verdictTitle.textContent = 'PROXY EXTERNO IDENTIFICADO';
       verdictTitle.style.color = 'var(--danger)';
-      verdictDesc.textContent = 'Foi encontrado um proxy/injetor externo conhecido, usado para interceptar ou alterar o tráfego do jogo.';
+
+      if (hasProxyMatch) {
+        verdictTitle.textContent = 'PROXY EXTERNO IDENTIFICADO';
+        verdictDesc.textContent = 'Foi encontrado um proxy/injetor externo conhecido, usado para interceptar ou alterar o tráfego do jogo.';
+      } else if (hasSuspeitaMatch) {
+        verdictTitle.textContent = '⚠ FERRAMENTA SUSPEITA IDENTIFICADA';
+        verdictDesc.textContent = 'Foi encontrada uma ferramenta de acesso/modificação (ex: Termux, MT Manager, testador de root) instalada no aparelho. Não é um proxy em si, mas pode indicar tentativa de burlar proteções.';
+      }
 
       findingsPanel.style.display = 'block';
       findingsPanel.classList.remove('collapsed');
