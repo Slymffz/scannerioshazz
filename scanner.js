@@ -829,12 +829,21 @@
     return isBoundaryChar(before) && isBoundaryChar(after);
   }
 
+  // Um "prefixo" só faz sentido testar contra algo que É, de fato, um hash/UUID —
+  // ou seja, uma string (tirando traços/pontos) composta só por dígitos hexadecimais.
+  // Sem isso, prefixos curtos tipo "bd" batem em qualquer identificador legível que comece
+  // com essas duas letras (ex: "BDC_Once_LastUsedFileName", que não é hash nenhum).
+  function looksLikeHash(key) {
+    var stripped = key.replace(/[-._\s]/g, '');
+    return stripped.length >= 8 && /^[0-9a-fA-F]+$/.test(stripped);
+  }
+
   function matchIOSKey(key) {
     var lowerKey = key.toLowerCase();
     for (var i = 0; i < IOS_PACKAGE_DB.length; i++) {
       var entry = IOS_PACKAGE_DB[i];
       var v = entry.value.toLowerCase();
-      if (entry.match === 'prefix' && lowerKey.indexOf(v) === 0) return entry;
+      if (entry.match === 'prefix' && looksLikeHash(key) && lowerKey.indexOf(v) === 0) return entry;
       if (entry.match === 'exact' && boundaryIncludes(lowerKey, v)) return entry;
     }
     return null;
