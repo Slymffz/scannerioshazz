@@ -1,6 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap");
 
-:root { --bg: #000000; --panel: #0A0A0A; --panel-2: #111111; --border: rgba(255,255,255,0.14); --border-gold: rgba(255,255,255,0.30); --text: #FFFFFF; --muted: #8C8C8C; --blue: #FFFFFF; --blue-soft: #FFFFFF; --gold: #FFFFFF; --gold-soft: #FFFFFF; --accent: var(--blue); --danger: #FF4D4D; --warn: #FFB020; --ok: #FFFFFF; }
+:root { --bg: #000000; --panel: #0A0A0A; --panel-2: #111111; --border: rgba(255,255,255,0.14); --border-gold: rgba(255,255,255,0.30); --text: #FFFFFF; --muted: #8C8C8C; --blue: #FFFFFF; --blue-soft: #FFFFFF; --gold: #FFFFFF; --gold-soft: #FFFFFF; --accent: var(--blue); --danger: #FF0000; --warn: #FFFF00; --ok: #FFFFFF; }
 
 * { box-sizing: border-box; }
 
