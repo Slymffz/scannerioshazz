@@ -1,160 +1,17 @@
 (function(){
   'use strict';
 
-  // ====================================================================
-  // CONFIGURAÇÃO DO SISTEMA DE KEYS (GitHub)
-  // Troque pela URL RAW do seu arquivo de keys no GitHub, ex:
-  // https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPO/main/keys.json
-  // (use o botão "Raw" do GitHub, NÃO o link normal github.com/.../blob/...)
-  //
-  // Formatos aceitos no arquivo:
-  //  1) JSON array de strings:      ["KEY-AAA111", "KEY-BBB222"]
-  //  2) JSON objeto com metadados:  { "KEY-AAA111": { "plano": "Vitalício" }, "KEY-BBB222": { "plano": "30 dias" } }
-  //  3) Texto puro, uma key por linha (opcionalmente "KEY|Plano"):
-  //       KEY-AAA111|Vitalício
-  //       KEY-BBB222|30 dias
-  // ====================================================================
-  var KEYS_URL = 'https://raw.githubusercontent.com/Slymffz/scannerioshazz/refs/heads/main/keys.json';
-
-  // ============ LOGIN (valida a chave contra o arquivo do GitHub) ============
-  var PLAN_LABELS = { vitalicio: 'Vitalício', mensal: 'Mensal', semanal: 'Semanal', diario: 'Diário', anual: 'Anual' };
-  function planLabel(p) {
-    if (!p) return 'Ativo';
-    var norm = String(p).toLowerCase();
-    if (PLAN_LABELS[norm]) return PLAN_LABELS[norm];
-    return String(p).charAt(0).toUpperCase() + String(p).slice(1);
-  }
-
-  function parseKeysFile(raw) {
-    var list = [];
-    var parsedJson = null;
-    try { parsedJson = JSON.parse(raw); } catch (e) { parsedJson = null; }
-
-    if (parsedJson && Array.isArray(parsedJson.keys)) {
-      // Formato real: { "keys": [ { key, plan, expires_at, active, user }, ... ] }
-      parsedJson.keys.forEach(function(k) {
-        list.push({
-          key: String(k.key || '').trim(),
-          plan: k.plan || 'Ativo',
-          active: k.active !== false,
-          expiresAt: k.expires_at || null,
-          user: k.user || null
-        });
-      });
-    } else if (Array.isArray(parsedJson)) {
-      parsedJson.forEach(function(k) { list.push({ key: String(k).trim(), plan: 'Ativo', active: true, expiresAt: null, user: null }); });
-    } else if (parsedJson && typeof parsedJson === 'object') {
-      Object.keys(parsedJson).forEach(function(k) {
-        var meta = parsedJson[k] || {};
-        list.push({ key: String(k).trim(), plan: meta.plano || meta.plan || 'Ativo', active: meta.active !== false, expiresAt: meta.expires_at || meta.expiresAt || null, user: meta.user || null });
-      });
-    } else {
-      raw.split(/\r?\n/).forEach(function(line) {
-        line = line.trim();
-        if (!line) return;
-        var parts = line.split('|');
-        list.push({ key: parts[0].trim(), plan: (parts[1] || 'Ativo').trim(), active: true, expiresAt: null, user: null });
-      });
-    }
-    return list;
-  }
-
-  function keyStatus(entry) {
-    if (entry.active === false) return 'inativa';
-    if (entry.expiresAt) {
-      var exp = new Date(entry.expiresAt);
-      if (!isNaN(exp.getTime()) && exp.getTime() < Date.now()) return 'expirada';
-    }
-    return 'valida';
-  }
-
-  function showGateError(msg) {
-    var errEl = document.getElementById('gateError');
-    errEl.textContent = msg;
-  }
-
-  function doLogin() {
-    var user = document.getElementById('authUser').value.trim();
-    var pass = document.getElementById('authPass').value.trim();
-    var btn = document.getElementById('authBtn');
-    showGateError('');
-
-    if (!user || !pass) {
-      showGateError('Preencha usuário e chave de acesso.');
-      return;
-    }
-
-    if (!KEYS_URL || KEYS_URL.indexOf('COLE_AQUI') !== -1) {
-      showGateError('Nenhuma URL de keys configurada (edite KEYS_URL em scanner.js).');
-      return;
-    }
-
-    btn.textContent = 'VERIFICANDO...';
-    btn.disabled = true;
-
-    var bustUrl = KEYS_URL + (KEYS_URL.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now();
-
-    fetch(bustUrl, { cache: 'no-store' })
-      .then(function(res) {
-        if (!res.ok) throw new Error('http ' + res.status);
-        return res.text();
-      })
-      .then(function(raw) {
-        var keys = parseKeysFile(raw);
-        var match = keys.find(function(k) { return k.key.toLowerCase() === pass.toLowerCase(); });
-
-        if (!match) {
-          showGateError('Chave inválida ou não encontrada.');
-          btn.textContent = 'ENTRAR';
-          btn.disabled = false;
-          return;
-        }
-
-        var status = keyStatus(match);
-        if (status === 'inativa') {
-          showGateError('Essa chave foi desativada.');
-          btn.textContent = 'ENTRAR';
-          btn.disabled = false;
-          return;
-        }
-        if (status === 'expirada') {
-          showGateError('Essa chave expirou.');
-          btn.textContent = 'ENTRAR';
-          btn.disabled = false;
-          return;
-        }
-
-        unlockApp(match.user || user, planLabel(match.plan));
-      })
-      .catch(function() {
-        showGateError('Não foi possível verificar a chave agora. Confira sua conexão ou a URL configurada.');
-        btn.textContent = 'ENTRAR';
-        btn.disabled = false;
-      });
-  }
-
-  function unlockApp(user, plan) {
-    var gate = document.getElementById('authGate');
-    gate.style.opacity = '0';
-    gate.style.transition = 'opacity 0.4s';
-    setTimeout(function(){ gate.style.display = 'none'; }, 400);
+  // ============ NAVEGAÇÃO (sem login — só landing -> scanner) ============
+  function enterScanner() {
+    var landing = document.getElementById('landingScreen');
+    landing.style.opacity = '0';
+    landing.style.transition = 'opacity 0.3s';
+    setTimeout(function(){ landing.style.display = 'none'; }, 300);
     document.getElementById('mainWrap').classList.add('unlocked');
-
-    var emailEl = document.getElementById('scanUserEmail');
-    var planEl = document.getElementById('scanPlanBadge');
-    if (emailEl) emailEl.textContent = user;
-    if (planEl) planEl.textContent = plan || 'Ativo';
-
-    // startMatrixRain(); // desativado — visual agora é preto sólido minimalista
   }
 
-  document.getElementById('authPass').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') doLogin();
-  });
-  document.getElementById('authUser').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') document.getElementById('authPass').focus();
-  });
-  window.doLogin = doLogin;
+  var enterBtn = document.getElementById('enterScannerBtn');
+  if (enterBtn) enterBtn.addEventListener('click', enterScanner);
 
   var logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) logoutBtn.addEventListener('click', function() { location.reload(); });
@@ -1126,27 +983,63 @@
     var props = extractGetprop(combinedText);
 
     // ---- Acesso remoto via ADB/rede ----
+    // Cobre 3 formatos diferentes de evidência que aparecem em bugreports reais:
+    //  1) getprop no formato "[chave]: [valor]" (dump padrão de propriedades)
+    //  2) "chave=valor" solto (saída crua de "getprop chave" rodado via shell)
+    //  3) socket realmente em LISTEN na porta (confirma que não é só configuração, é porta ativa)
     var adbTcpPort = props['service.adb.tcp.port'] || props['persist.adb.tcp.port'];
+
+    var plainKeyValueHits = [];
+    fileContents.forEach(function(f) {
+      var lines = f.content.split(/\r?\n/);
+      lines.forEach(function(l) {
+        var m = l.match(/\b(service\.adb\.tcp\.port|persist\.adb\.tcp\.port)=(\d+)/);
+        if (m) plainKeyValueHits.push({ path: f.path, line: l.trim(), port: m[2] });
+      });
+    });
+    if (!adbTcpPort && plainKeyValueHits.length) adbTcpPort = plainKeyValueHits[0].port;
+
     if (adbTcpPort && adbTcpPort !== '-1' && adbTcpPort !== '0') {
-      var adbPropHits = searchAcrossFiles('adb.tcp.port', true);
+      var adbPropHits = searchAcrossFiles('adb.tcp.port', true).concat(plainKeyValueHits);
+
+      var listenHits = [];
+      fileContents.forEach(function(f) {
+        var lines = f.content.split(/\r?\n/);
+        lines.forEach(function(l) {
+          if (/listen/i.test(l) && l.indexOf(':' + adbTcpPort) !== -1) {
+            listenHits.push({ path: f.path, line: l.trim() });
+          }
+        });
+      });
+
+      var allAdbTcpHits = adbPropHits.concat(listenHits);
       matches.push({
         group: 'Acesso Remoto (ADB/Rede)',
-        label: 'Remote detectado: porta ' + adbTcpPort + ' aberta (acesso remoto via ADB/rede)',
+        label: 'Remote detectado: porta ' + adbTcpPort + ' aberta (acesso remoto via ADB/rede)' + (listenHits.length ? ' — socket confirmado em LISTEN' : ''),
         pkg: 'service.adb.tcp.port=' + adbTcpPort,
-        count: adbPropHits.length || 1,
-        logLines: adbPropHits.length ? adbPropHits.map(function(h) { return h.line; }) : ['service.adb.tcp.port=' + adbTcpPort],
-        sources: adbPropHits.length ? uniquePaths(adbPropHits) : [],
+        count: allAdbTcpHits.length || 1,
+        logLines: allAdbTcpHits.length ? allAdbTcpHits.map(function(h) { return h.line; }) : ['service.adb.tcp.port=' + adbTcpPort],
+        sources: uniquePaths(allAdbTcpHits),
         installInfo: null
       });
     }
 
     // ---- Histórico de conexão USB (com horário, quando presente na linha de log) ----
+    // "\busb\b" com borda de palavra evita falso positivo tipo "StatusBar" (contém "usb" no meio,
+    // mas não é USB nenhum). Mantive alguns nomes de classe conhecidos que são legitimamente sobre
+    // USB mesmo grudados em CamelCase (ex: "UsbDeviceManager"), onde a borda de palavra não pega.
+    var USB_KNOWN_TAGS = ['UsbDeviceManager', 'UsbService', 'UsbManager', 'UsbHostManager', 'UsbPortManager', 'UsbAlsaManager'];
+    function isUsbEvidenceLine(l) {
+      if (/\busb\b/i.test(l)) return true;
+      return USB_KNOWN_TAGS.some(function(tag) { return l.indexOf(tag) !== -1; });
+    }
+
     var usbHits = [];
     fileContents.forEach(function(f) {
       var lines = f.content.split(/\r?\n/);
       for (var i = 0; i < lines.length; i++) {
         var l = lines[i];
-        if (/usb/i.test(l) && /(connect|disconnect|attach|detach|conectad|desconectad)/i.test(l)) {
+        if (isUsbEvidenceLine(l) && /(connect|disconnect|attach|detach|conectad|desconectad)/i.test(l)) {
           usbHits.push({ path: f.path, line: l.trim() });
           if (usbHits.length >= 50) break;
         }
@@ -1164,13 +1057,22 @@
       });
     }
 
-    // ---- Histórico de conexão ADB (sessões, autorizações, shell) ----
+    // ---- Histórico de conexão/sessão ADB ----
+    // "adbd service requested 'shell,v2,TERM=" é a assinatura exata de UMA sessão shell aberta via
+    // ADB (aparece uma vez por comando executado) — é a evidência mais forte que existe de uso ativo
+    // de ADB. "AdbDebuggingManager...Received/Logging key" é o evento de autorização de chave ADB.
+    var ADB_SHELL_MARKER = "adbd service requested";
+    var ADB_KEY_EVENT_RE = /AdbDebuggingManager.*(Received (connected|public) key|Logging key)/i;
+
     var adbHits = [];
     fileContents.forEach(function(f) {
       var lines = f.content.split(/\r?\n/);
       for (var i = 0; i < lines.length; i++) {
         var l = lines[i];
-        if (/\badb\b/i.test(l) && /(connect|shell|authoriz|debugging|session|client|device_id)/i.test(l)) {
+        var isShellSession = l.indexOf(ADB_SHELL_MARKER) !== -1;
+        var isKeyEvent = ADB_KEY_EVENT_RE.test(l);
+        var isGenericAdbWord = /\badb\b/i.test(l) && /(connect|shell|authoriz|debugging|session|client|device_id)/i.test(l);
+        if (isShellSession || isKeyEvent || isGenericAdbWord) {
           adbHits.push({ path: f.path, line: l.trim() });
           if (adbHits.length >= 50) break;
         }
@@ -1234,7 +1136,7 @@
       { label: 'Assinatura do build', val: signature, ok: signatureOk },
       { label: 'Debuggable', val: debuggableText, ok: debuggableOk },
       { label: 'Modo seguro (ro.secure)', val: secureText, ok: secureOk },
-      { label: 'Modo USB (sys.usb.state)', val: usbModeText, ok: !usbAdbActive }
+      { label: 'Modo USB (sys.usb.state)', val: usbModeText, ok: true }
     ];
 
     // App alvo (ex: Free Fire) — confere se a instalação bate com a loja oficial

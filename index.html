@@ -9,30 +9,13 @@
 </head>
 <body>
 
-<!-- LOGIN GATE -->
-<div class="gate" id="authGate">
-  <div class="gate-card">
-    <div class="gate-org-label">Credits: Kernel Bypass</div>
-    <div class="gate-logo-row">
-      <span class="gate-logo-text">HAZZSCREENS</span>
-    </div>
-    <div class="gate-subtitle2">SCANNER FORENSE</div>
-
-    <div class="gate-step-pill">ETAPA 1 DE 1 · LOGIN COM CHAVE</div>
-
-    <div class="gate-icon-circle">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
-    </div>
-    <div class="gate-title2">Login com Chave</div>
-    <div class="gate-desc2">Identifique-se e informe sua chave de acesso.<br>Chaves são geradas apenas pelo administrador.</div>
-
-    <input class="gate-field2" id="authUser" type="text" placeholder="Usuário" autocomplete="off" spellcheck="false">
-    <input class="gate-field2" id="authPass" type="password" placeholder="Chave de acesso" autocomplete="off">
-    <button class="gate-btn2" id="authBtn" onclick="doLogin()">ENTRAR</button>
-    <div class="gate-error" id="gateError"></div>
-
-    <div class="gate-hr"></div>
-    <div class="gate-footer2">acesso concedido apenas a membros<br><span>KERNEL BYPASS</span></div>
+<!-- LANDING -->
+<div class="landing" id="landingScreen">
+  <div class="landing-inner">
+    <div class="landing-brand">HAZZSCREENS</div>
+    <div class="landing-subtitle">SCANNER FORENSE</div>
+    <a class="landing-feedback-btn" href="https://discord.gg/xqW2bS8Ann" target="_blank" rel="noopener">★ Dar Feedback</a>
+    <button type="button" class="landing-enter-btn" id="enterScannerBtn">Entrar no Scanner</button>
   </div>
 </div>
 
@@ -40,12 +23,7 @@
 <canvas id="matrixRain"></canvas>
 <div class="wrap" id="mainWrap">
   <div class="scan-topbar">
-    <div class="scan-user">
-      <span class="scan-user-icon">👤</span>
-      <span id="scanUserEmail">-</span>
-      <span class="scan-plan-badge" id="scanPlanBadge">Ativo</span>
-    </div>
-    <button class="scan-logout-btn" id="logoutBtn">SAIR</button>
+    <button class="scan-logout-btn" id="logoutBtn">◀ VOLTAR</button>
   </div>
   <div class="scan-local-badge">100% LOCAL</div>
 
