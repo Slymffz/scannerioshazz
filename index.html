@@ -20,6 +20,7 @@
 </div>
 
 <!-- MAIN CONTENT -->
+<div class="bg-glow"></div>
 <canvas id="matrixRain"></canvas>
 <div class="wrap" id="mainWrap">
   <div class="scan-topbar">
@@ -75,6 +76,17 @@
     </div>
 
     <div class="android-panel" id="androidPanel" style="display:none;">
+      <div class="file-info-bar" id="fileInfoBar"></div>
+
+      <div class="verified-boot-hero" id="verifiedBootHero">
+        <div class="vbh-icon" id="vbhIcon">🔒</div>
+        <div class="vbh-text">
+          <div class="vbh-label">VERIFIED BOOT STATE</div>
+          <div class="vbh-value" id="vbhValue">-</div>
+          <div class="vbh-desc" id="vbhDesc"></div>
+        </div>
+      </div>
+
       <div class="app-id-card" id="appIdCard" style="display:none;">
         <div class="app-id-header" id="appIdHeader">APP ALVO</div>
         <div class="app-id-box" id="appIdBox">
@@ -99,20 +111,8 @@
       </div>
 
       <div class="state-list" id="stateList"></div>
-    </div>
 
-    <div class="findings-panel" id="findingsPanel" style="display:none;">
-      <div class="findings-header" id="findingsHeader">
-        <div class="findings-header-left">
-          <span class="findings-diamond">◆</span>
-          <span>RESULTADOS DA ANÁLISE</span>
-        </div>
-        <div class="findings-header-right">
-          <span class="findings-count" id="findingsCount">0</span>
-          <span class="findings-arrow" id="findingsArrow">▲</span>
-        </div>
-      </div>
-      <div class="findings-body" id="findingsBody"></div>
+      <div id="categoryCards"></div>
     </div>
 
     <div class="ios-panel" id="iosPanel" style="display:none;">

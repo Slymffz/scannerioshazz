@@ -1,6 +1,20 @@
 (function(){
   'use strict';
 
+  // Injeta estilos para os avisos de log e layout das linhas
+  (function injectStyles() {
+    var style = document.createElement('style');
+    style.innerHTML = 
+      '.cat-item-log-wrapper { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }' +
+      '.log-warning { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; margin-bottom: 2px; }' +
+      '.log-warning.oldest { background: #2a2a2a; color: #999; border: 1px solid #444; }' +
+      '.log-warning.newest { background: #8b0000; color: #eee; border: 1px solid #a52a2a; box-shadow: 0 0 4px rgba(139,0,0,0.2); }' +
+      '.cat-item-install.uninstall { background: rgba(255,255,255,0.05); border-color: #444; color: #aaa; }' +
+      '.cat-item-log { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: #eee; word-break: break-all; line-height: 1.4; background: rgba(255,255,255,0.05); padding: 2px 4px; border-radius: 2px; flex: 1; min-width: 200px; }' +
+      '.log-highlight { background: #ffea00; color: #000; padding: 0 2px; border-radius: 2px; font-weight: bold; }';
+    document.head.appendChild(style);
+  })();
+
   // ============ NAVEGAÇÃO (sem login — só landing -> scanner) ============
   function enterScanner() {
     var landing = document.getElementById('landingScreen');
@@ -8,6 +22,7 @@
     landing.style.transition = 'opacity 0.3s';
     setTimeout(function(){ landing.style.display = 'none'; }, 300);
     document.getElementById('mainWrap').classList.add('unlocked');
+    startMatrixRain();
   }
 
   var enterBtn = document.getElementById('enterScannerBtn');
@@ -16,7 +31,7 @@
   var logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) logoutBtn.addEventListener('click', function() { location.reload(); });
 
-  // ============ CHUVA DE CÓDIGO BINÁRIO (canvas de fundo) ============
+  // ============ CHUVA DE CÓDIGO BINÁRIO (canvas de fundo, sutil) ============
   var matrixStarted = false;
   function startMatrixRain() {
     if (matrixStarted) return;
@@ -25,8 +40,10 @@
     var canvas = document.getElementById('matrixRain');
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
-    var fontSize = 15;
+    var fontSize = 9; // pequeno, como pedido
     var columns, drops;
+    var frameSkip = 4; // só avança a cada N frames = bem devagar
+    var frameCounter = 0;
 
     function resize() {
       canvas.width = window.innerWidth;
@@ -39,19 +56,22 @@
     window.addEventListener('resize', resize);
 
     function draw() {
-      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      frameCounter++;
+      ctx.fillStyle = 'rgba(0,0,0,0.06)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.font = fontSize + 'px "IBM Plex Mono", monospace';
 
-      for (var i = 0; i < columns; i++) {
-        var char = Math.random() > 0.5 ? '1' : '0';
-        var x = i * fontSize;
-        var y = drops[i] * fontSize;
-        var isHead = Math.random() > 0.93;
-        ctx.fillStyle = isHead ? '#B9FFDA' : 'rgba(34,227,126,0.75)';
-        ctx.fillText(char, x, y);
-        if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
-        drops[i]++;
+      if (frameCounter % frameSkip === 0) {
+        ctx.font = fontSize + 'px "IBM Plex Mono", monospace';
+        for (var i = 0; i < columns; i++) {
+          var char = Math.random() > 0.5 ? '1' : '0';
+          var x = i * fontSize;
+          var y = drops[i] * fontSize;
+          var isHead = Math.random() > 0.93;
+          ctx.fillStyle = isHead ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.32)';
+          ctx.fillText(char, x, y);
+          if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
+          drops[i]++;
+        }
       }
       requestAnimationFrame(draw);
     }
@@ -90,7 +110,12 @@
     { group: 'Suspeita', label: 'Ferramenta de acesso: MT Manager',      pkg: 'bin.mt.plus' },
     { group: 'Suspeita', label: 'Ferramenta de acesso: Zarchiver', pkg: 'ru.zdevs.zarchiver' },
     { group: 'Suspeita', label: 'Ferramenta de acesso: Brevent', pkg: 'me.piebridge.brevent' },
-    { group: 'Suspeita', label: 'Ferramenta de acesso: Shizuku', pkg: 'moe.shizuku.privileged.api' }
+    // Rastros de Root
+    { group: 'Rastros de Root', label: 'Magisk Delta', pkg: 'io.github.huskydg.magisk' },
+    { group: 'Rastros de Root', label: 'APatch (root via kernel)', pkg: 'me.bmax.apatch' },
+    { group: 'Rastros de Root', label: 'Zygisk (módulo Magisk)', pkg: 'zygisk', exclude: /duckdetector|zygisk_fd_detector|zygisk.detector/i },
+    { group: 'Rastros de Root', label: 'VBMeta Fix (bypass de Verified Boot)', pkg: 'vbmetafix' },
+    { group: 'Rastros de Root', label: 'Shizuku (acesso privilegiado)', pkg: 'moe.shizuku.privileged.api' }
   ];
 
   // ============ BASE DE PERFIS/CERTIFICADOS SUSPEITOS (iOS) ============
@@ -196,7 +221,15 @@
     { category: 'Desconhecida', match: 'exact', value: 'authproxyxff.up' },
     { category: 'Desconhecida', match: 'exact', value: 'freefireproxy.xyz' },
     { category: 'Desconhecida', match: 'exact', value: 'proxyady' },
-    { category: 'Desconhecida', match: 'prefix', value: 'mit' }
+    { category: 'Desconhecida', match: 'prefix', value: 'mit' },
+    // Sideload/Jailbreak (Filza, ESign, TrollStore) — IDs confirmados em evidência real de sysdiagnose
+    { category: 'Sideload/Jailbreak', match: 'exact', value: 'com.tigisoftware.filza' },
+    { category: 'Sideload/Jailbreak', match: 'exact', value: 'filza' },
+    { category: 'Sideload/Jailbreak', match: 'exact', value: 'vn.esign.app11' },
+    { category: 'Sideload/Jailbreak', match: 'exact', value: 'esign' },
+    { category: 'Sideload/Jailbreak', match: 'exact', value: 'com.alfie.trollinstallerx' },
+    { category: 'Sideload/Jailbreak', match: 'exact', value: 'trollstore' },
+    { category: 'Sideload/Jailbreak', match: 'exact', value: 'trollinstaller' }
   ];
 
   // ============ ELEMENTOS ============
@@ -211,10 +244,12 @@
   var verdictDot = document.getElementById('verdictDot');
   var verdictTitle = document.getElementById('verdictTitle');
   var verdictDesc = document.getElementById('verdictDesc');
-  var findingsPanel = document.getElementById('findingsPanel');
-  var findingsHeader = document.getElementById('findingsHeader');
-  var findingsCount = document.getElementById('findingsCount');
-  var findingsBody = document.getElementById('findingsBody');
+  var fileInfoBar = document.getElementById('fileInfoBar');
+  var verifiedBootHero = document.getElementById('verifiedBootHero');
+  var vbhIcon = document.getElementById('vbhIcon');
+  var vbhValue = document.getElementById('vbhValue');
+  var vbhDesc = document.getElementById('vbhDesc');
+  var categoryCardsEl = document.getElementById('categoryCards');
   var androidPanel = document.getElementById('androidPanel');
   var appIdCard = document.getElementById('appIdCard');
   var appIdBox = document.getElementById('appIdBox');
@@ -281,9 +316,7 @@
       });
   }
 
-  findingsHeader.addEventListener('click', function() {
-    findingsPanel.classList.toggle('collapsed');
-  });
+  // (o toggle de colapsar/expandir agora é por categoria, montado dinamicamente em renderCategoryCards)
 
   function showError(msg) {
     errEl.textContent = msg;
@@ -305,9 +338,7 @@
     setProgress(0, '0%');
     idleStatus.style.display = 'flex';
     resultsEl.style.display = 'none';
-    findingsBody.innerHTML = '';
-    findingsPanel.style.display = 'none';
-    findingsPanel.classList.remove('collapsed');
+    categoryCardsEl.innerHTML = '';
     androidPanel.style.display = 'none';
     iosEvents.innerHTML = '';
     iosPanel.style.display = 'none';
@@ -369,6 +400,8 @@
     });
   }
 
+  var currentFileInfo = null; // { name, size } — usado na barra "Arquivo: ... | Tamanho: ..."
+
   function handleFolderFiles(fileList) {
     clearError();
     resultsEl.style.display = 'none';
@@ -377,12 +410,16 @@
 
     var fileMap = {};
     var paths = [];
+    var totalSize = 0;
+    var topName = fileList[0] && fileList[0].webkitRelativePath ? fileList[0].webkitRelativePath.split('/')[0] : 'pasta selecionada';
     for (var i = 0; i < fileList.length; i++) {
       var f = fileList[i];
       var rel = f.webkitRelativePath || f.name;
       fileMap[rel] = f;
       paths.push(rel);
+      totalSize += f.size || 0;
     }
+    currentFileInfo = { name: topName, size: totalSize };
 
     var archive = {
       paths: paths,
@@ -401,6 +438,7 @@
   function handleFile(file) {
     clearError();
     resultsEl.style.display = 'none';
+    currentFileInfo = { name: file.name, size: file.size };
 
     var name = file.name.toLowerCase();
     var isTxt = name.endsWith('.txt');
@@ -588,8 +626,18 @@
     var sysVersionPath = archive.paths.find(function(p) { return /SystemVersion\.plist$/i.test(p); });
     var deviceInfoPromise = sysVersionPath ? archive.read(sysVersionPath) : Promise.resolve('');
 
-    // Arquivos onde perfis/certificados (MCProfile / managed configuration) e histórico de eventos aparecem
-    var plistPaths = archive.paths.filter(function(p) { return /\.(plist|xml)$/i.test(p); });
+    // Arquivos onde perfis/certificados/evidências aparecem — inclui .txt também, mas com cuidado:
+    // muitos .txt de sysdiagnose são logs de crash/dump binário enormes, então a varredura de token
+    // "solto" (que pega qualquer coisa, não só <key>) só roda em arquivos de evidência conhecidos.
+    var plistPaths = archive.paths.filter(function(p) { return /\.(plist|xml|txt)$/i.test(p); });
+
+    // Whitelist de .txt onde já confirmamos formato de texto legível (não binário/hex dump).
+    // Adicionar mais padrões aqui conforme formos confirmando outros arquivos.
+    var TXT_TOKEN_SCAN_WHITELIST = [/brctl-container-list\.txt$/i, /brctl-.*\.txt$/i];
+    function isSafeForTokenScan(path) {
+      if (/\.(plist|xml)$/i.test(path)) return true; // estruturado, sem risco de lixo binário
+      return TXT_TOKEN_SCAN_WHITELIST.some(function(re) { return re.test(path); });
+    }
 
     deviceInfoPromise.then(function(plistText) {
       var productVersion = extractPlistValue(plistText, 'ProductVersion');
@@ -629,6 +677,28 @@
               var snipStart = Math.max(0, km.index - 20);
               var snipEnd = Math.min(txt.length, km.index + 260);
               keySources[k].push({ path: p, snippet: txt.slice(snipStart, snipEnd).trim() });
+            }
+          }
+
+          // Varredura direta de tokens no texto cru: pega identificadores que aparecem como
+          // VALOR (não como <key>) — ex: "clients: com.Alfie.TrollInstallerX, vn.esign.app11"
+          // em brctl-container-list.txt, ou strings soltas dentro de arrays de outros plists.
+          // SÓ roda em arquivo estruturado (plist/xml) ou .txt já confirmado como texto legível —
+          // .txt genéricos (logs de crash, hex dumps binários) ficam de fora pra não gerar lixo/falso positivo.
+          if (isSafeForTokenScan(p)) {
+            var tokenRe = /[A-Za-z0-9][A-Za-z0-9_.\-]{5,79}/g;
+            var tm;
+            while ((tm = tokenRe.exec(txt))) {
+              var tok = tm[0];
+              if (!allKeys.has(tok)) {
+                allKeys.add(tok);
+                if (!keySources[tok]) keySources[tok] = [];
+              }
+              if (keySources[tok] && !keySources[tok].some(function(s) { return s.path === p; })) {
+                var tStart = Math.max(0, tm.index - 20);
+                var tEnd = Math.min(txt.length, tm.index + 260);
+                keySources[tok].push({ path: p, snippet: txt.slice(tStart, tEnd).trim() });
+              }
             }
           }
 
@@ -773,7 +843,6 @@
     setTimeout(function() {
       progressWrap.style.display = 'none';
       resultsEl.style.display = 'block';
-      findingsPanel.style.display = 'none';
       androidPanel.style.display = 'none';
       iosPanel.style.display = 'block';
 
@@ -820,35 +889,34 @@
         }
 
         matchedTimeline.forEach(function(ev) {
-          var isInstall = ev.event === 'add' || ev.event === 'install' || ev.event === 'installed';
-          var tagClass = isInstall ? 'install' : 'remove';
-          var tagLabel = isInstall ? 'INSTALAÇÃO' : 'REMOÇÃO';
           var card = document.createElement('div');
           card.className = 'ios-event';
-          var logSection = buildLogSection(ev.path || '(caminho desconhecido)', ev.rawBlock || ev.process);
-          card.innerHTML =
-            '<span class="ios-event-tag ' + tagClass + '">' + tagLabel + '</span>' +
-            '<div class="ios-event-id">' + escapeHtml(ev.process) + '</div>' +
-            '<div class="ios-event-time">' + formatTimestamp(ev.timestamp) + '</div>' +
-            logSection.html;
-          wireLogButton(card, logSection);
+          
+          var logText = ev.rawBlock || ev.process;
+          var cleaned = cleanLogLine(logText, ev.process);
+          var highlighted = highlightTerm(cleaned, ev.process);
+          
+          card.innerHTML = 
+            '<div class="ios-event-id" style="color:var(--danger); font-weight:bold; margin-bottom:8px;">' + escapeHtml(ev.process) + '</div>' +
+            '<div class="cat-item-log-wrapper">' +
+              '<span class="cat-item-log">' + highlighted + '</span>' +
+            '</div>';
           pushToCategory(ev.category, card);
         });
 
         presentOnly.forEach(function(m) {
-          var shortPrefix = m.matchType === 'prefix' && m.matchedValue.length < 6;
           var card = document.createElement('div');
           card.className = 'ios-event';
-          var pathsText = m.sources.length ? m.sources.map(function(s) { return s.path; }).join(', ') : '(caminho desconhecido)';
-          var rawText = m.sources.length ? m.sources.map(function(s) { return '— ' + s.path + ' —\n' + s.snippet; }).join('\n\n') : m.key;
-          var logSection = buildLogSection(pathsText, rawText);
+          
+          var logText = m.sources.length ? m.sources[0].snippet : m.key;
+          var cleaned = cleanLogLine(logText, m.key);
+          var highlighted = highlightTerm(cleaned, m.key);
+
           card.innerHTML =
-            '<span class="ios-event-tag remove">PRESENTE</span>' +
-            (shortPrefix ? '<span class="ios-event-tag remove" style="margin-left:6px;">⚠ prefixo curto</span>' : '') +
-            '<div class="ios-event-id">' + escapeHtml(m.key) + '</div>' +
-            '<div class="ios-event-time">match: ' + m.matchType + ' "' + escapeHtml(m.matchedValue) + '" · sem timeline neste arquivo</div>' +
-            logSection.html;
-          wireLogButton(card, logSection);
+            '<div class="ios-event-id" style="color:var(--danger); font-weight:bold; margin-bottom:8px;">' + escapeHtml(m.key) + '</div>' +
+            '<div class="cat-item-log-wrapper">' +
+              '<span class="cat-item-log">' + highlighted + '</span>' +
+            '</div>';
           pushToCategory(m.category, card);
         });
 
@@ -932,6 +1000,46 @@
     return raw;
   }
 
+  function parseAndroidLogDate(line) {
+    // Formato: 23/06/2026 21:13
+    var m = line.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+    if (m) return new Date(m[3], m[2] - 1, m[1], m[4], m[5]);
+    // Formato alternativo: 06-23 21:13:00.000
+    m = line.match(/(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+    if (m) return new Date(new Date().getFullYear(), m[1] - 1, m[2], m[3], m[4]);
+    return null;
+  }
+
+  function cleanLogLine(line, searchTerm) {
+    var cleaned = line.trim();
+    
+    // Se a linha for muito grande ou tiver muitos dados irrelevantes, foca no termo
+    if (searchTerm) {
+      var lowerLine = cleaned.toLowerCase();
+      var lowerTerm = searchTerm.toLowerCase();
+      var termIdx = lowerLine.indexOf(lowerTerm);
+      
+      if (termIdx !== -1) {
+        // Pega um trecho bem curto ao redor do termo para não poluir
+        var start = Math.max(0, termIdx - 30);
+        var end = Math.min(cleaned.length, termIdx + 60);
+        var prefix = start > 0 ? "..." : "";
+        var suffix = end < cleaned.length ? "..." : "";
+        cleaned = prefix + cleaned.substring(start, end).trim() + suffix;
+      }
+    }
+    
+    return cleaned;
+  }
+
+  function highlightTerm(text, term) {
+    if (!term) return escapeHtml(text);
+    // Escapa caracteres especiais e permite highlight de partes do termo (como 'adb.tcp.port')
+    var cleanTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    var re = new RegExp('(' + cleanTerm + '|adb\\.tcp\\.port|Uninstall|Install)', 'gi');
+    return escapeHtml(text).replace(re, '<span class="log-highlight">$1</span>');
+  }
+
   // ============ ANÁLISE DE TEXTO / FILTRO DE PACOTES ============
   function analyzeFiles(fileContents) {
     setProgress(90, 'Comparando com base de pacotes...');
@@ -940,7 +1048,7 @@
     var matches = []; // { group, label, pkg, count, logLines, sources, installInfo }
 
     // Busca entry.pkg em todos os arquivos, mantendo de qual arquivo cada ocorrência veio
-    function searchAcrossFiles(needle, caseInsensitive) {
+    function searchAcrossFiles(needle, caseInsensitive, excludeRe) {
       var hits = []; // [{ path, line }]
       fileContents.forEach(function(f) {
         var lines = f.content.split(/\r?\n/);
@@ -948,6 +1056,7 @@
           var hay = caseInsensitive ? lines[i].toLowerCase() : lines[i];
           var n = caseInsensitive ? needle.toLowerCase() : needle;
           if (hay.indexOf(n) !== -1) {
+            if (excludeRe && excludeRe.test(lines[i])) continue; // falso positivo conhecido, pula
             hits.push({ path: f.path, line: lines[i].trim() });
             if (hits.length >= 30) return hits; // limite pra não travar a tela
           }
@@ -964,7 +1073,7 @@
     }
 
     PACKAGE_DB.forEach(function(entry) {
-      var hits = searchAcrossFiles(entry.pkg, false);
+      var hits = searchAcrossFiles(entry.pkg, !!entry.caseInsensitive, entry.exclude);
       if (hits.length) {
         var installInfo = parsePackageInfo(getPackageBlock(combinedText, entry.pkg));
         matches.push({
@@ -993,99 +1102,81 @@
     fileContents.forEach(function(f) {
       var lines = f.content.split(/\r?\n/);
       lines.forEach(function(l) {
-        var m = l.match(/\b(service\.adb\.tcp\.port|persist\.adb\.tcp\.port)=(\d+)/);
-        if (m) plainKeyValueHits.push({ path: f.path, line: l.trim(), port: m[2] });
+        // Captura tanto a atribuição chave=valor quanto a log de serviço adbd
+        var m = l.match(/\b(service\.adb\.tcp\.port|persist\.adb\.tcp\.port)\s*=\s*(\d+)/i);
+        var isAdbdService = /adbd\s*:\s*adbd service requested.*adb\.tcp\.port/i.test(l);
+        if (m || isAdbdService) {
+          plainKeyValueHits.push({ path: f.path, line: l.trim(), port: m ? m[2] : null });
+        }
       });
     });
-    if (!adbTcpPort && plainKeyValueHits.length) adbTcpPort = plainKeyValueHits[0].port;
 
-    if (adbTcpPort && adbTcpPort !== '-1' && adbTcpPort !== '0') {
-      var adbPropHits = searchAcrossFiles('adb.tcp.port', true).concat(plainKeyValueHits);
-
-      var listenHits = [];
-      fileContents.forEach(function(f) {
-        var lines = f.content.split(/\r?\n/);
-        lines.forEach(function(l) {
-          if (/listen/i.test(l) && l.indexOf(':' + adbTcpPort) !== -1) {
-            listenHits.push({ path: f.path, line: l.trim() });
-          }
-        });
-      });
-
-      var allAdbTcpHits = adbPropHits.concat(listenHits);
+    if (plainKeyValueHits.length) {
+      var detectedPort = plainKeyValueHits.find(function(h){ return h.port; });
+      var portLabel = detectedPort ? detectedPort.port : "5555";
+      
       matches.push({
         group: 'Acesso Remoto (ADB/Rede)',
-        label: 'Remote detectado: porta ' + adbTcpPort + ' aberta (acesso remoto via ADB/rede)' + (listenHits.length ? ' — socket confirmado em LISTEN' : ''),
-        pkg: 'service.adb.tcp.port=' + adbTcpPort,
-        count: allAdbTcpHits.length || 1,
-        logLines: allAdbTcpHits.length ? allAdbTcpHits.map(function(h) { return h.line; }) : ['service.adb.tcp.port=' + adbTcpPort],
-        sources: uniquePaths(allAdbTcpHits),
+        label: 'Remote detectado: porta ' + portLabel + ' aberta (acesso remoto via ADB/rede)',
+        pkg: 'adb.tcp.port',
+        count: 1, // Um único item de detecção
+        logLines: plainKeyValueHits.map(function(h) { return h.line; }),
+        sources: uniquePaths(plainKeyValueHits),
         installInfo: null
       });
     }
 
-    // ---- Histórico de conexão USB (com horário, quando presente na linha de log) ----
-    // "\busb\b" com borda de palavra evita falso positivo tipo "StatusBar" (contém "usb" no meio,
-    // mas não é USB nenhum). Mantive alguns nomes de classe conhecidos que são legitimamente sobre
-    // USB mesmo grudados em CamelCase (ex: "UsbDeviceManager"), onde a borda de palavra não pega.
-    var USB_KNOWN_TAGS = ['UsbDeviceManager', 'UsbService', 'UsbManager', 'UsbHostManager', 'UsbPortManager', 'UsbAlsaManager'];
-    function isUsbEvidenceLine(l) {
-      if (/\busb\b/i.test(l)) return true;
-      return USB_KNOWN_TAGS.some(function(tag) { return l.indexOf(tag) !== -1; });
-    }
+    // ---- Pareamentos ADB/USB (padrões exatos, com tipo de conexão + direção) ----
+    // Cada padrão abaixo é uma assinatura de log real e específica do Android (adbd/AdbDebuggingManager),
+    // não um heurístico genérico — isso é o que reduz o falso positivo comparado a "contém a palavra usb/adb".
+    var PAIRING_PATTERNS = [
+      { re: /adbd_wifi_secure_connect:\s*connected/i, type: 'WIRELESS', dir: 'ENTRADA' },
+      { re: /adbd_wifi_secure_connect:\s*disconnected/i, type: 'WIRELESS', dir: 'SAÍDA' },
+      { re: /adbd_usb_secure_connect:\s*connected/i, type: 'USB', dir: 'ENTRADA' },
+      { re: /adbd_usb_secure_connect:\s*disconnected/i, type: 'USB', dir: 'SAÍDA' },
+      { re: /AdbDebuggingManager:\s*Received WIFI TLS connected key message/i, type: 'WIRELESS', dir: 'ENTRADA' },
+      { re: /AdbDebuggingManager:\s*Received USB TLS connected key message/i, type: 'USB', dir: 'ENTRADA' },
+      { re: /AdbDebuggingManager.*\(Received\s*\(connected\|public\)\s*key\|Logging key\)/i, type: 'AUTORIZAÇÃO', dir: 'ENTRADA' },
+      { re: /AdbDebuggingManager.*WIFI TLS connected key.*u0_a/i, type: 'WIRELESS', dir: 'ENTRADA' },
+      { re: /AdbDebuggingManager.*\(WIFI TLS\|TLS connected\|tls\.\*connect\)/i, type: 'WIRELESS', dir: 'ENTRADA' },
+      { re: /adbd\s*:\s*adbd service requested.*getprop.*adb\.tcp\.port/i, type: 'SHELL', dir: 'CONSULTA' },
+      { re: /(service|persist)\.adb\.tcp\.port\s*=\s*\d+/i, type: 'CONFIG', dir: 'ATIVA' }
+    ];
+    var LOGCAT_TS_RE = /^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+)/;
 
-    var usbHits = [];
+    var pairingHits = [];
     fileContents.forEach(function(f) {
       var lines = f.content.split(/\r?\n/);
       for (var i = 0; i < lines.length; i++) {
         var l = lines[i];
-        if (isUsbEvidenceLine(l) && /(connect|disconnect|attach|detach|conectad|desconectad)/i.test(l)) {
-          usbHits.push({ path: f.path, line: l.trim() });
-          if (usbHits.length >= 50) break;
+        for (var p = 0; p < PAIRING_PATTERNS.length; p++) {
+          if (PAIRING_PATTERNS[p].re.test(l)) {
+            var tsMatch = l.match(LOGCAT_TS_RE);
+            pairingHits.push({
+              path: f.path,
+              line: l.trim(),
+              timestamp: tsMatch ? tsMatch[1] : null,
+              type: PAIRING_PATTERNS[p].type,
+              dir: PAIRING_PATTERNS[p].dir
+            });
+            break; // um padrão já basta pra essa linha
+          }
         }
+        if (pairingHits.length >= 50) break;
       }
     });
-    if (usbHits.length) {
-      matches.push({
-        group: 'Histórico USB',
-        label: 'Eventos de conexão/desconexão USB no log',
-        pkg: usbHits.length + ' linha(s) de log com atividade USB',
-        count: usbHits.length,
-        logLines: usbHits.map(function(h) { return h.line; }),
-        sources: uniquePaths(usbHits),
-        installInfo: null
-      });
-    }
 
-    // ---- Histórico de conexão/sessão ADB ----
-    // "adbd service requested 'shell,v2,TERM=" é a assinatura exata de UMA sessão shell aberta via
-    // ADB (aparece uma vez por comando executado) — é a evidência mais forte que existe de uso ativo
-    // de ADB. "AdbDebuggingManager...Received/Logging key" é o evento de autorização de chave ADB.
-    var ADB_SHELL_MARKER = "adbd service requested";
-    var ADB_KEY_EVENT_RE = /AdbDebuggingManager.*(Received (connected|public) key|Logging key)/i;
-
-    var adbHits = [];
-    fileContents.forEach(function(f) {
-      var lines = f.content.split(/\r?\n/);
-      for (var i = 0; i < lines.length; i++) {
-        var l = lines[i];
-        var isShellSession = l.indexOf(ADB_SHELL_MARKER) !== -1;
-        var isKeyEvent = ADB_KEY_EVENT_RE.test(l);
-        var isGenericAdbWord = /\badb\b/i.test(l) && /(connect|shell|authoriz|debugging|session|client|device_id)/i.test(l);
-        if (isShellSession || isKeyEvent || isGenericAdbWord) {
-          adbHits.push({ path: f.path, line: l.trim() });
-          if (adbHits.length >= 50) break;
-        }
-      }
-    });
-    if (adbHits.length) {
+    if (pairingHits.length) {
       matches.push({
-        group: 'Histórico ADB',
-        label: 'Eventos de sessão/conexão ADB no log',
-        pkg: adbHits.length + ' linha(s) de log com atividade ADB',
-        count: adbHits.length,
-        logLines: adbHits.map(function(h) { return h.line; }),
-        sources: uniquePaths(adbHits),
+        group: 'Pareamentos ADB/USB',
+        label: 'Eventos de pareamento/conexão ADB via USB ou Wi-Fi',
+        pkg: pairingHits.length + ' evento(s) de pareamento detectado(s)',
+        count: pairingHits.length,
+        logLines: pairingHits.map(function(h) {
+          return (h.timestamp ? h.timestamp + '  ' : '') + '[ PC/CELULAR (' + h.type + ') ] [ ' + h.dir + ' ]\nLOG: ' + h.line;
+        }),
+        sources: uniquePaths(pairingHits),
+        pairingHits: pairingHits,
         installInfo: null
       });
     }
@@ -1150,13 +1241,37 @@
     }, 300);
   }
 
+  function formatFileSize(bytes) {
+    if (!bytes && bytes !== 0) return '-';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function buildTagPills(text) {
+    // Quebra uma linha de log em "pedaços" (separados por vírgula/espaço) e monta pills,
+    // pra ficar igual à referência visual em vez de um bloco de texto corrido.
+    var parts = text.split(/[,\s]+/).filter(Boolean);
+    if (parts.length < 2) return null; // não vale a pena virar pill, mostra cru mesmo
+    return parts.map(function(p) { return '<span class="tag-pill">' + escapeHtml(p) + '</span>'; }).join('');
+  }
+
   function renderResults(matches, device, systemState, targetInfo) {
     resultsEl.style.display = 'block';
-    findingsBody.innerHTML = '';
+    categoryCardsEl.innerHTML = '';
     iosPanel.style.display = 'none';
     androidPanel.style.display = 'block';
 
     var total = matches.length;
+
+    // ---- Barra de info do arquivo ----
+    if (currentFileInfo) {
+      fileInfoBar.innerHTML =
+        'Arquivo: <b>' + escapeHtml(currentFileInfo.name) + '</b> | Tamanho: <b>' + formatFileSize(currentFileInfo.size) + '</b> | ' +
+        'Análise: <b>' + formatTimestamp(new Date().toISOString()) + '</b>';
+    } else {
+      fileInfoBar.innerHTML = '';
+    }
 
     // ---- Device info ----
     andModel.textContent = device.model;
@@ -1180,6 +1295,17 @@
       stateList.appendChild(row);
     });
 
+    // ---- Hero de Verified Boot ----
+    var vbRow = systemState.filter(function(s) { return s.label === 'Verified Boot'; })[0];
+    var vbOk = vbRow ? vbRow.ok : false;
+    var vbVal = vbRow ? vbRow.val : '-';
+    verifiedBootHero.className = 'verified-boot-hero' + (vbOk ? '' : ' warn');
+    vbhIcon.textContent = vbOk ? '🔒' : '🔓';
+    vbhValue.textContent = String(vbVal).toUpperCase();
+    vbhDesc.textContent = vbOk
+      ? 'Bootloader bloqueado — dispositivo íntegro'
+      : 'Bootloader desbloqueado ou estado de boot alterado — dispositivo pode ter sido modificado';
+
     // ---- App alvo ----
     if (targetInfo) {
       var isOfficial = targetInfo.installerPackageName && TARGET_APP.officialInstallers.indexOf(targetInfo.installerPackageName) !== -1;
@@ -1196,87 +1322,178 @@
       appIdCard.style.display = 'none';
     }
 
-    if (total > 0) {
-      var hasRemoteAccess = matches.some(function(m) { return m.group === 'Acesso Remoto (ADB/Rede)'; });
-      var hasProxyMatch = matches.some(function(m) { return m.group === 'Proxy Externo' || m.group === 'Aplicativo Disfarçado'; });
-      var hasSuspeitaMatch = matches.some(function(m) { return m.group === 'Suspeita'; });
+    // ---- Veredito geral ----
+    var hasRemoteAccess = matches.some(function(m) { return m.group === 'Acesso Remoto (ADB/Rede)'; });
+    var hasProxyMatch = matches.some(function(m) { return m.group === 'Proxy Externo' || m.group === 'Aplicativo Disfarçado'; });
+    var hasRootMatch = matches.some(function(m) { return m.group === 'Rastros de Root'; });
+    var hasSuspeitaMatch = matches.some(function(m) { return m.group === 'Suspeita'; });
 
+    if (total > 0) {
       verdictDot.style.background = 'var(--danger)';
       verdictTitle.style.color = 'var(--danger)';
-
       if (hasRemoteAccess) {
         verdictTitle.textContent = 'ACESSO REMOTO DETECTADO';
         verdictDesc.textContent = 'O aparelho está com ADB acessível via rede (porta TCP aberta), permitindo controle remoto do dispositivo.';
       } else if (hasProxyMatch) {
         verdictTitle.textContent = 'PROXY EXTERNO IDENTIFICADO';
         verdictDesc.textContent = 'Foi encontrado um proxy/injetor externo conhecido, usado para interceptar ou alterar o tráfego do jogo.';
+      } else if (hasRootMatch) {
+        verdictTitle.textContent = 'RASTROS DE ROOT ENCONTRADOS';
+        verdictDesc.textContent = 'Foram encontrados indícios de root/acesso privilegiado (Magisk, APatch, Zygisk ou Shizuku) no aparelho.';
       } else if (hasSuspeitaMatch) {
         verdictTitle.textContent = '⚠ FERRAMENTA SUSPEITA IDENTIFICADA';
-        verdictDesc.textContent = 'Foi encontrada uma ferramenta de acesso/modificação (ex: Termux, MT Manager, testador de root) instalada no aparelho. Não é um proxy em si, mas pode indicar tentativa de burlar proteções.';
+        verdictDesc.textContent = 'Foi encontrada uma ferramenta de acesso/modificação (ex: Termux, MT Manager) instalada no aparelho.';
+      } else {
+        verdictTitle.textContent = '⚠ Pareamento ADB/USB encontrado';
+        verdictDesc.textContent = 'Foram encontrados eventos de pareamento ADB/USB no log.';
       }
-
-      findingsPanel.style.display = 'block';
-      findingsPanel.classList.remove('collapsed');
-      findingsCount.textContent = total;
-
-      // Agrupa por categoria
-      var groupOrder = ['Acesso Remoto (ADB/Rede)', 'Proxy Externo', 'Aplicativo Disfarçado', 'Suspeita', 'Histórico USB', 'Histórico ADB'];
-      var byGroup = {};
-      matches.forEach(function(m) {
-        if (!byGroup[m.group]) byGroup[m.group] = [];
-        byGroup[m.group].push(m);
-      });
-
-      var logCounter = 0;
-      groupOrder.forEach(function(groupName) {
-        var groupMatches = byGroup[groupName];
-        if (!groupMatches || !groupMatches.length) return;
-
-        var header = document.createElement('div');
-        header.className = 'group-header';
-        header.textContent = groupName;
-        findingsBody.appendChild(header);
-
-        groupMatches.forEach(function(m) {
-          var card = document.createElement('div');
-          card.className = 'finding-card';
-
-          var logId = 'log_' + (logCounter++);
-          var installLine = '';
-          if (m.installInfo && m.installInfo.firstInstallTime) {
-            installLine = '<div class="finding-desc" style="color:var(--gold-soft);margin-bottom:10px;">instalado (confirmado) · Instalação: ' + escapeHtml(formatAndroidTimestamp(m.installInfo.firstInstallTime)) + '</div>';
-          }
-
-          card.innerHTML =
-            '<div class="finding-top">' +
-              '<div class="finding-name">' + escapeHtml(m.label) + '</div>' +
-              '<div class="finding-badge">ATIVO</div>' +
-            '</div>' +
-            '<div class="finding-desc">' + escapeHtml(m.pkg) + ' · ' + m.count + ' ocorrência(s) no arquivo</div>' +
-            installLine +
-            '<button class="finding-log-btn" data-target="' + logId + '">🔍 VER LOG EXATA</button>' +
-            '<pre class="finding-log" id="' + logId + '"></pre>';
-
-          var pre = card.querySelector('.finding-log');
-          var pathsText = (m.sources && m.sources.length) ? m.sources.join(', ') : '(caminho desconhecido)';
-          pre.textContent = '📁 Encontrado em: ' + pathsText + '\n\n' + m.logLines.join('\n');
-
-          var btn = card.querySelector('.finding-log-btn');
-          btn.addEventListener('click', function() {
-            pre.classList.toggle('open');
-            btn.textContent = pre.classList.contains('open') ? '▲ OCULTAR LOG' : '🔍 VER LOG EXATA';
-          });
-
-          findingsBody.appendChild(card);
-        });
-      });
     } else {
       verdictDot.style.background = 'var(--ok)';
-      verdictTitle.textContent = '✔ Nenhum indício encontrado';
       verdictTitle.style.color = 'var(--ok)';
+      verdictTitle.textContent = '✔ Nenhum indício encontrado';
       verdictDesc.textContent = 'Nenhum pacote da base de dados foi encontrado neste bugreport.';
-      findingsPanel.style.display = 'none';
     }
+
+    renderCategoryCards(matches);
+  }
+
+  // Categorias de topo mostradas como cards colapsáveis (igual à referência visual)
+  var TOP_CATEGORIES = [
+    { key: 'proxy', title: 'PACOTES PROXY', groups: ['Proxy Externo', 'Aplicativo Disfarçado'] },
+    { key: 'root', title: 'RASTROS DE ROOT', groups: ['Rastros de Root'] },
+    { key: 'suspeita', title: 'FERRAMENTAS SUSPEITAS', groups: ['Suspeita'] },
+    { key: 'pareamento', title: 'PAREAMENTOS ADB/USB', groups: ['Pareamentos ADB/USB', 'Acesso Remoto (ADB/Rede)'] }
+  ];
+
+  function renderCategoryCards(matches) {
+    var logCounter = 0;
+
+    TOP_CATEGORIES.forEach(function(cat) {
+      var catMatches = matches.filter(function(m) { return cat.groups.indexOf(m.group) !== -1; });
+      // Contagem de itens únicos (pacotes ou tipos de detecção) em vez de total de logs
+      var count = catMatches.length;
+
+      // Lógica para encontrar a instalação/desinstalação mais antiga e mais recente em toda a categoria
+      var globalOldest = null, globalNewest = null;
+      var hasAnyImportant = false;
+      if (cat.key === 'proxy' || cat.key === 'root') {
+        var allImportant = [];
+        catMatches.forEach(function(m) {
+          (m.logLines || []).forEach(function(l) {
+            if (l.indexOf('Uninstall') !== -1 || l.indexOf('Install') !== -1) {
+              var d = parseAndroidLogDate(l);
+              if (d) {
+                allImportant.push({ date: d, line: l });
+                hasAnyImportant = true;
+              }
+            }
+          });
+        });
+        if (allImportant.length > 0) {
+          allImportant.sort(function(a, b) { return a.date - b.date; });
+          globalOldest = allImportant[0].line;
+          globalNewest = allImportant[allImportant.length - 1].line;
+        }
+      }
+
+      var card = document.createElement('div');
+      card.className = 'cat-card' + (count > 0 ? ' has-alert' : '') + ' collapsed';
+
+      var header = document.createElement('div');
+      header.className = 'cat-card-header';
+      header.innerHTML =
+        '<span class="cat-card-badge' + (count > 0 ? ' alert' : '') + '">' + count + '</span>' +
+        '<span class="cat-card-title">' + escapeHtml(cat.title) + '</span>' +
+        '<span class="cat-card-arrow">⌄</span>';
+      card.appendChild(header);
+
+      var body = document.createElement('div');
+      body.className = 'cat-card-body';
+
+      if (!catMatches.length) {
+        body.innerHTML = '<div class="cat-card-empty">Nenhum indício encontrado nesta categoria.</div>';
+      } else {
+        catMatches.forEach(function(m) {
+          var item = document.createElement('div');
+          item.className = 'cat-item';
+
+          // Pareamentos ADB/USB têm um layout próprio; o resto mostra apenas o trecho de log
+          var bodyHtml;
+          var titleText;
+          if (m.pairingHits) {
+            titleText = m.label;
+            bodyHtml = m.pairingHits.slice(0, 5).map(function(h) {
+              return '<div class="pairing-entry">' +
+                (h.timestamp ? '<div class="pairing-ts">' + escapeHtml(h.timestamp) + '</div>' : '') +
+                '<div class="pairing-tags"><span class="pairing-tag type">[ PC/CELULAR (' + escapeHtml(h.type) + ') ]</span> <span class="pairing-tag dir">[ ' + escapeHtml(h.dir) + ' ]</span></div>' +
+                '<div class="pairing-log">LOG: ' + escapeHtml(h.line) + '</div>' +
+              '</div>';
+            }).join('');
+          } else {
+            titleText = m.pkg;
+            
+            var filteredLines = (m.logLines || []);
+            var isAdbPort = m.pkg === 'adb.tcp.port';
+            
+            var importantLines = filteredLines.filter(function(l) {
+              if (isAdbPort) {
+                return /adb\.tcp\.port\s*=\s*\d+/i.test(l);
+              }
+              return l.indexOf('Uninstall') !== -1 || l.indexOf('Install') !== -1;
+            });
+            
+            // FILTRO AGRESSIVO: Mostra apenas 1 linha para a maioria, mas para ADB mostra todas as logs relevantes
+            var linesToDisplay = [];
+            if (isAdbPort) {
+              // Para ADB, mostra todas as logs encontradas (configurações, serviços e conexões)
+              // Remove apenas duplicatas exatas de conteúdo
+              var seen = {};
+              linesToDisplay = filteredLines.filter(function(l) {
+                var norm = l.trim().toLowerCase();
+                if (seen[norm]) return false;
+                seen[norm] = true;
+                return true;
+              });
+            } else {
+              var lineToShow = importantLines.length > 0 ? importantLines[importantLines.length - 1] : filteredLines[0];
+              if (lineToShow) linesToDisplay.push(lineToShow);
+            }
+
+            var linesHtml = linesToDisplay.map(function(l) {
+              // Se for detecção de porta ADB, não corta a linha para garantir que o valor apareça
+              var cleaned = isAdbPort ? l.trim() : cleanLogLine(l, m.pkg);
+              var highlighted = highlightTerm(cleaned, m.pkg);
+              var warning = '';
+              
+              if (cat.key === 'proxy' || cat.key === 'root') {
+                if (l === globalOldest) warning = '<span class="log-warning oldest">⚠️ MAIS ANTIGA</span>';
+                if (l === globalNewest) warning = '<span class="log-warning newest">⚠️ MAIS RECENTE</span>';
+                if (globalOldest === globalNewest && l === globalOldest) {
+                  warning = '<span class="log-warning newest">⚠️ ÚNICA/RECENTE</span>';
+                }
+              }
+              
+              return '<div class="cat-item-log-wrapper">' +
+                       warning +
+                       '<span class="cat-item-log">' + highlighted + '</span>' +
+                     '</div>';
+            }).join('');
+
+            bodyHtml = linesHtml || ('<span class="cat-item-log">' + escapeHtml(m.pkg) + '</span>');
+          }
+
+          item.innerHTML =
+            '<div class="cat-item-name">' + escapeHtml(titleText) + '</div>' +
+            bodyHtml;
+
+          body.appendChild(item);
+        });
+      }
+
+      card.appendChild(body);
+      header.addEventListener('click', function() { card.classList.toggle('collapsed'); });
+      categoryCardsEl.appendChild(card);
+    });
   }
 
 })();
