@@ -111,6 +111,7 @@
     { group: 'Suspeita', label: 'Ferramenta de acesso: Zarchiver', pkg: 'ru.zdevs.zarchiver' },
     { group: 'Suspeita', label: 'Ferramenta de acesso: Brevent', pkg: 'me.piebridge.brevent' },
     // Rastros de Root
+    { group: 'Rastros de Root', label: 'Magisk Delta', pkg: 'io.github.vvb2060.magisk' },
     { group: 'Rastros de Root', label: 'Magisk Delta', pkg: 'io.github.huskydg.magisk' },
     { group: 'Rastros de Root', label: 'APatch (root via kernel)', pkg: 'me.bmax.apatch' },
     { group: 'Rastros de Root', label: 'Zygisk (módulo Magisk)', pkg: 'zygisk', exclude: /duckdetector|zygisk_fd_detector|zygisk.detector/i },
