@@ -229,7 +229,7 @@
     { category: 'Sideload/Jailbreak', match: 'exact', value: 'esign' },
     { category: 'Sideload/Jailbreak', match: 'exact', value: 'com.alfie.trollinstallerx' },
     { category: 'Sideload/Jailbreak', match: 'exact', value: 'trollstore' },
-    { category: 'Sideload/Jailbreak', match: 'exact', value: 'trollinstaller' }
+    { category: 'Sideload/Jailbreak', match: 'exact', value: 'trollinstaller' },
   ];
 
   // ============ ELEMENTOS ============
@@ -629,7 +629,7 @@
     // Arquivos onde perfis/certificados/evidências aparecem — inclui .txt também, mas com cuidado:
     // muitos .txt de sysdiagnose são logs de crash/dump binário enormes, então a varredura de token
     // "solto" (que pega qualquer coisa, não só <key>) só roda em arquivos de evidência conhecidos.
-    var plistPaths = archive.paths.filter(function(p) { return /\.(plist|xml|txt)$/i.test(p); });
+    var plistPaths = archive.paths.filter(function(p) { return /\.(plist|xml|txt|log)$/i.test(p); });
 
     // Whitelist de .txt onde já confirmamos formato de texto legível (não binário/hex dump).
     // Adicionar mais padrões aqui conforme formos confirmando outros arquivos.
@@ -667,6 +667,71 @@
 
       plistPaths.forEach(function(p) {
         archive.read(p).then(function(txt) {
+          var isMCState = /MCState\.log$/i.test(p);
+          var isKBDebug = /kbdebug\.txt$/i.test(p);
+
+          // Se for o MCState.log, processa APENAS os bypasses (lógica linha a linha) e ignora TODO o resto
+          if (isMCState) {
+            var lines = txt.split(/\r?\n/);
+            var bypassTerms = ['icebypass', 'lunarbypass', 'dashbypass', 'zeexbypass', 'bypass'];
+            
+            lines.forEach(function(line, index) {
+              var lowerLine = line.toLowerCase();
+              bypassTerms.forEach(function(term) {
+                if (lowerLine.indexOf(term) !== -1) {
+                  // Cria uma chave única baseada no termo encontrado
+                  var bypassKey = "BYPASS_" + term;
+                  if (!allKeys.has(bypassKey)) {
+                    allKeys.add(bypassKey);
+                    keySources[bypassKey] = [];
+                  }
+                  
+                  // Adiciona a linha como evidência se ainda não estiver lá
+                  if (!keySources[bypassKey].some(function(s) { return s.snippet === line.trim(); })) {
+                    keySources[bypassKey].push({
+                      path: p,
+                      snippet: line.trim(),
+                      isBypass: true,
+                      originalTerm: term,
+                      lineNum: index + 1
+                    });
+                  }
+                }
+              });
+            });
+            return; // Garante que o MCState.log não passe por nenhuma outra função (iniciais, tokens, etc)
+          }
+
+          // Se for o kbdebug.txt, processa a detecção de Jailbreak/Sideload
+          if (isKBDebug) {
+            var lines = txt.split(/\r?\n/);
+            var jailbreakTerms = ['facebook.messenger'];
+            
+            lines.forEach(function(line, index) {
+              var lowerLine = line.toLowerCase();
+              jailbreakTerms.forEach(function(term) {
+                if (lowerLine.indexOf(term) !== -1) {
+                  var jbKey = "JB_" + term;
+                  if (!allKeys.has(jbKey)) {
+                    allKeys.add(jbKey);
+                    keySources[jbKey] = [];
+                  }
+                  if (!keySources[jbKey].some(function(s) { return s.snippet === line.trim(); })) {
+                    keySources[jbKey].push({
+                      path: p,
+                      snippet: line.trim(),
+                      isJailbreak: true,
+                      originalTerm: term,
+                      lineNum: index + 1
+                    });
+                  }
+                }
+              });
+            });
+            // Não retorna aqui, pois kbdebug pode conter outras chaves úteis se for texto legível
+          }
+
+          // Processamento normal para os outros arquivos
           var keyRe = /<key>([^<]+)<\/key>/g;
           var km;
           while ((km = keyRe.exec(txt))) {
@@ -680,11 +745,6 @@
             }
           }
 
-          // Varredura direta de tokens no texto cru: pega identificadores que aparecem como
-          // VALOR (não como <key>) — ex: "clients: com.Alfie.TrollInstallerX, vn.esign.app11"
-          // em brctl-container-list.txt, ou strings soltas dentro de arrays de outros plists.
-          // SÓ roda em arquivo estruturado (plist/xml) ou .txt já confirmado como texto legível —
-          // .txt genéricos (logs de crash, hex dumps binários) ficam de fora pra não gerar lixo/falso positivo.
           if (isSafeForTokenScan(p)) {
             var tokenRe = /[A-Za-z0-9][A-Za-z0-9_.\-]{5,79}/g;
             var tm;
@@ -833,6 +893,33 @@
     var presentOnly = [];
     allKeys.forEach(function(key) {
       if (timelineProcesses.has(key)) return;
+      
+      // Se for um bypass detectado manualmente no MCState.log
+      if (key.indexOf("BYPASS_") === 0 && keySources[key] && keySources[key].length > 0) {
+        var src = keySources[key][0];
+        presentOnly.push({ 
+          category: 'Tentativa de Bypass', 
+          matchType: 'exact', 
+          matchedValue: src.originalTerm, 
+          key: src.originalTerm, 
+          sources: keySources[key] 
+        });
+        return;
+      }
+
+      // Se for uma detecção no kbdebug.txt (Jailbreak/Sideload)
+      if (key.indexOf("JB_") === 0 && keySources[key] && keySources[key].length > 0) {
+        var src = keySources[key][0];
+        presentOnly.push({ 
+          category: 'Sideload/Jailbreak', 
+          matchType: 'exact', 
+          matchedValue: src.originalTerm, 
+          key: src.originalTerm, 
+          sources: keySources[key] 
+        });
+        return;
+      }
+
       var entry = matchIOSKey(key);
       if (entry) presentOnly.push({ category: entry.category, matchType: entry.match, matchedValue: entry.value, key: key, sources: keySources[key] || [] });
     });
@@ -894,7 +981,7 @@
           
           var logText = ev.rawBlock || ev.process;
           var cleaned = cleanLogLine(logText, ev.process);
-          var highlighted = highlightTerm(cleaned, ev.process);
+          var highlighted = highlightTerm(cleaned, ev.process, ev.category);
           
           card.innerHTML = 
             '<div class="ios-event-id" style="color:var(--danger); font-weight:bold; margin-bottom:8px;">' + escapeHtml(ev.process) + '</div>' +
@@ -910,7 +997,7 @@
           
           var logText = m.sources.length ? m.sources[0].snippet : m.key;
           var cleaned = cleanLogLine(logText, m.key);
-          var highlighted = highlightTerm(cleaned, m.key);
+          var highlighted = highlightTerm(cleaned, m.key, m.category);
 
           card.innerHTML =
             '<div class="ios-event-id" style="color:var(--danger); font-weight:bold; margin-bottom:8px;">' + escapeHtml(m.key) + '</div>' +
@@ -1032,11 +1119,24 @@
     return cleaned;
   }
 
-  function highlightTerm(text, term) {
+  function highlightTerm(text, term, category) {
     if (!term) return escapeHtml(text);
-    // Escapa caracteres especiais e permite highlight de partes do termo (como 'adb.tcp.port')
+    
+    var lowerTerm = term.toLowerCase();
+    var lowerCat = (category || "").toLowerCase();
+    
+    // Termos que SEMPRE devem ter highlight
+    var forceHighlight = ['esign', 'filza', 'troll', 'bypass', 'icebypass', 'lunarbypass', 'dashbypass', 'zeexbypass', 'adb.tcp.port', 'uninstall', 'install', 'facebook.messenger'];
+    var isForced = forceHighlight.some(function(t) { return lowerTerm.indexOf(t) !== -1 || lowerCat.indexOf(t) !== -1; });
+    
+    // Se for categoria de Proxy (Android ou iOS) e não for um termo forçado, não faz highlight
+    var isProxyCat = lowerCat.indexOf('proxy') !== -1 || lowerCat.indexOf('disfarçado') !== -1 || lowerCat.indexOf('certificado') !== -1;
+    
+    if (isProxyCat && !isForced) return escapeHtml(text);
+
     var cleanTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    var re = new RegExp('(' + cleanTerm + '|adb\\.tcp\\.port|Uninstall|Install)', 'gi');
+    // Regex para destacar o termo original OU qualquer um dos termos forçados que apareçam na log
+    var re = new RegExp('(' + cleanTerm + '|adb\\.tcp\\.port|Uninstall|Install|bypass|esign|filza|trollstore|trollinstaller)', 'gi');
     return escapeHtml(text).replace(re, '<span class="log-highlight">$1</span>');
   }
 
@@ -1462,7 +1562,7 @@
             var linesHtml = linesToDisplay.map(function(l) {
               // Se for detecção de porta ADB, não corta a linha para garantir que o valor apareça
               var cleaned = isAdbPort ? l.trim() : cleanLogLine(l, m.pkg);
-              var highlighted = highlightTerm(cleaned, m.pkg);
+              var highlighted = highlightTerm(cleaned, m.pkg, cat.title);
               var warning = '';
               
               if (cat.key === 'proxy' || cat.key === 'root') {
