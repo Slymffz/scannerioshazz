@@ -111,7 +111,6 @@
     { group: 'Suspeita', label: 'Ferramenta de acesso: Zarchiver', pkg: 'ru.zdevs.zarchiver' },
     { group: 'Suspeita', label: 'Ferramenta de acesso: Brevent', pkg: 'me.piebridge.brevent' },
     // Rastros de Root
-    { group: 'Rastros de Root', label: 'Magisk Delta', pkg: 'io.github.vvb2060.magisk' },
     { group: 'Rastros de Root', label: 'Magisk Delta', pkg: 'io.github.huskydg.magisk' },
     { group: 'Rastros de Root', label: 'APatch (root via kernel)', pkg: 'me.bmax.apatch' },
     { group: 'Rastros de Root', label: 'Zygisk (módulo Magisk)', pkg: 'zygisk', exclude: /duckdetector|zygisk_fd_detector|zygisk.detector/i },
@@ -630,7 +629,9 @@
     // Arquivos onde perfis/certificados/evidências aparecem — inclui .txt também, mas com cuidado:
     // muitos .txt de sysdiagnose são logs de crash/dump binário enormes, então a varredura de token
     // "solto" (que pega qualquer coisa, não só <key>) só roda em arquivos de evidência conhecidos.
-    var plistPaths = archive.paths.filter(function(p) { return /\.(plist|xml|txt|log)$/i.test(p); });
+    var plistPaths = archive.paths.filter(function(p) { 
+      return /\.(plist|xml|txt|log|tracev3)$/i.test(p) || /EA4B5C24D5643E2699207B76F6C7F6FC$/i.test(p); 
+    });
 
     // Whitelist de .txt onde já confirmamos formato de texto legível (não binário/hex dump).
     // Adicionar mais padrões aqui conforme formos confirmando outros arquivos.
@@ -670,6 +671,38 @@
         archive.read(p).then(function(txt) {
           var isMCState = /MCState\.log$/i.test(p);
           var isKBDebug = /kbdebug\.txt$/i.test(p);
+          var isProxyInjectionFile = /EA4B5C24D5643E2699207B76F6C7F6FC$/i.test(p);
+          var isTraceV3 = /\.tracev3$/i.test(p);
+
+          // Detecção de Proxy Injection no arquivo específico
+          if (isProxyInjectionFile) {
+            var lines = txt.split(/\r?\n/);
+            lines.forEach(function(line, index) {
+              if (line.toLowerCase().indexOf('proxy injection') !== -1) {
+                var key = "PROXY_INJECTION";
+                if (!allKeys.has(key)) { allKeys.add(key); keySources[key] = []; }
+                if (!keySources[key].some(function(s) { return s.snippet === line.trim(); })) {
+                  keySources[key].push({ path: p, snippet: line.trim(), isProxyInjection: true, originalTerm: 'Proxy Injection', category: 'Proxy Externo' });
+                }
+              }
+            });
+            return;
+          }
+
+          // Detecção de Binary Bypass em arquivos .tracev3
+          if (isTraceV3) {
+            var lines = txt.split(/\r?\n/);
+            lines.forEach(function(line, index) {
+              if (line.toLowerCase().indexOf('binary bypass') !== -1) {
+                var key = "BINARY_BYPASS";
+                if (!allKeys.has(key)) { allKeys.add(key); keySources[key] = []; }
+                if (!keySources[key].some(function(s) { return s.snippet === line.trim(); })) {
+                  keySources[key].push({ path: p, snippet: line.trim(), isBinaryBypass: true, originalTerm: 'Binary Bypass', category: 'Tentativa de Bypass' });
+                }
+              }
+            });
+            return;
+          }
 
           // Se for o MCState.log, processa APENAS os bypasses (lógica linha a linha) e ignora TODO o resto
           if (isMCState) {
@@ -921,6 +954,19 @@
         return;
       }
 
+      // Se for Proxy Injection ou Binary Bypass detectado manualmente
+      if ((key === "PROXY_INJECTION" || key === "BINARY_BYPASS") && keySources[key] && keySources[key].length > 0) {
+        var src = keySources[key][0];
+        presentOnly.push({ 
+          category: src.category, 
+          matchType: 'exact', 
+          matchedValue: src.originalTerm, 
+          key: src.originalTerm, 
+          sources: keySources[key] 
+        });
+        return;
+      }
+
       var entry = matchIOSKey(key);
       if (entry) presentOnly.push({ category: entry.category, matchType: entry.match, matchedValue: entry.value, key: key, sources: keySources[key] || [] });
     });
@@ -1127,17 +1173,18 @@
     var lowerCat = (category || "").toLowerCase();
     
     // Termos que SEMPRE devem ter highlight
-    var forceHighlight = ['esign', 'filza', 'troll', 'bypass', 'icebypass', 'lunarbypass', 'dashbypass', 'zeexbypass', 'adb.tcp.port', 'uninstall', 'install', 'facebook.messenger'];
+    var forceHighlight = [
+      'esign', 'filza', 'troll', 'bypass', 'icebypass', 'lunarbypass', 'dashbypass', 'zeexbypass', 
+      'adb.tcp.port', 'uninstall', 'install', 'facebook.messenger', 'proxy', 'injection', 'binary'
+    ];
     var isForced = forceHighlight.some(function(t) { return lowerTerm.indexOf(t) !== -1 || lowerCat.indexOf(t) !== -1; });
     
-    // Se for categoria de Proxy (Android ou iOS) e não for um termo forçado, não faz highlight
-    var isProxyCat = lowerCat.indexOf('proxy') !== -1 || lowerCat.indexOf('disfarçado') !== -1 || lowerCat.indexOf('certificado') !== -1;
+    // Se for categoria de Proxy (Android ou iOS) e não for um termo forçado, agora fazemos highlight de qualquer forma
+    // mas mantemos a lógica de isForced para garantir que termos específicos brilhem.
     
-    if (isProxyCat && !isForced) return escapeHtml(text);
-
     var cleanTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     // Regex para destacar o termo original OU qualquer um dos termos forçados que apareçam na log
-    var re = new RegExp('(' + cleanTerm + '|adb\\.tcp\\.port|Uninstall|Install|bypass|esign|filza|trollstore|trollinstaller)', 'gi');
+    var re = new RegExp('(' + cleanTerm + '|adb\\.tcp\\.port|Uninstall|Install|bypass|esign|filza|trollstore|trollinstaller|proxy injection|binary bypass|facebook\\.messenger)', 'gi');
     return escapeHtml(text).replace(re, '<span class="log-highlight">$1</span>');
   }
 
