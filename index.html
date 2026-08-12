@@ -3,28 +3,37 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>kernel bypass</title>
+<title>Olhos de Deus · Access Key</title>
 
 <link rel="stylesheet" href="scanner.css">
 </head>
 <body>
 
-<!-- LANDING -->
-<div class="landing" id="landingScreen">
-  <div class="landing-inner">
-    <div class="landing-brand">HAZZSCREENS</div>
-    <div class="landing-subtitle">SCANNER FORENSE</div>
-    <a class="landing-feedback-btn" href="https://discord.gg/xqW2bS8Ann" target="_blank" rel="noopener">★ Dar Feedback</a>
-    <button type="button" class="landing-enter-btn" id="enterScannerBtn">Entrar no Scanner</button>
+<!-- LOGIN -->
+<section class="eog-login" id="loginScreen">
+  <div class="eog-login-brand"><div>OLHOS DE DEUS<small>EYES OF GOD / FORENSIC TERMINAL</small></div><span>● ACESSO RESTRITO</span></div>
+  <div class="eog-login-grid">
+    <div class="eog-login-intro"><p>SECURE ANALYSIS SUITE</p><h1>Leia o rastro.<br><span>Encontre o sinal.</span></h1><div class="eog-login-copy">Um terminal privado para inspeção de Bug Reports Android e Sysdiagnoses iOS. A análise ocorre localmente no navegador.</div><div class="eog-login-points">◈ processamento local no navegador<br>◈ evidência em trechos legíveis</div></div>
+    <form class="eog-login-card" id="accessForm"><p>OLHOS DE DEUS</p><h2>ACCESS KEY</h2><div class="eog-card-copy">Insira sua chave para liberar o terminal de análise.</div><label for="accessKey">CHAVE DE ACESSO</label><input id="accessKey" autocomplete="off" placeholder="INSIRA SUA KEY" required><button type="submit" id="authorizeBtn">AUTORIZAR ACESSO　›</button><div class="eog-or"><span></span>OU<span></span></div><a href="https://discord.gg/xqW2bS8Ann" target="_blank" rel="noopener">ADQUIRA SUA KEY ↗</a><a class="eog-support" href="https://discord.gg/xqW2bS8Ann" target="_blank" rel="noopener">DISCORD PARA SUPORTE　?</a><div id="accessMessage" class="eog-message"></div></form>
   </div>
-</div>
+  <div class="eog-login-foot"><span>CRIADO POR KERNEL BYPASS</span><span>EYES OF GOD / PRIVATE FORENSIC TOOLS</span></div>
+</section>
+
+<!-- SELEÇÃO DE SCANNER -->
+<section class="eog-mode" id="modeScreen" hidden style="display:none;">
+  <div class="eog-mode-head"><div>OLHOS DE DEUS<small>EYES OF GOD / FORENSIC TERMINAL</small></div><span>● ACESSO AUTORIZADO</span></div>
+  <div class="eog-mode-intro"><p>SECURE ANALYSIS SUITE</p><h1>Escolha o scanner.</h1><div>Selecione a plataforma correspondente ao arquivo forense que você deseja analisar.</div></div>
+  <div class="eog-mode-grid"><button type="button" data-mode="android"><small>01 / BUG REPORT</small><strong>◈<br>ANDROID</strong><span>Logs, pacotes Proxy/Root e conexões ADB/USB.</span></button><button type="button" data-mode="ios"><small>02 / SYSDIAGNOSE</small><strong>◉<br>iOS</strong><span>Sysdiagnose, bypass, sideload e evidências de Proxy.</span></button></div>
+  <button class="eog-back" type="button" id="backToLogin">SAIR E VOLTAR AO LOGIN</button>
+</section>
 
 <!-- MAIN CONTENT -->
 <div class="bg-glow"></div>
 <canvas id="matrixRain"></canvas>
-<div class="wrap" id="mainWrap">
+<div class="wrap" id="mainWrap" style="display:none;">
   <div class="scan-topbar">
-    <button class="scan-logout-btn" id="logoutBtn">◀ VOLTAR</button>
+    <div class="scan-user"><span class="scan-user-icon">◉</span><strong>OLHOS DE DEUS</strong><span class="scan-plan-badge" id="planBadge">ACESSO AUTORIZADO</span></div>
+    <button class="scan-logout-btn" id="logoutBtn">◀ ESCOLHER OUTRO</button>
   </div>
   <div class="scan-local-badge">100% LOCAL</div>
 
@@ -37,7 +46,7 @@
   </div>
   <p class="sub"> Análise técnica avançada do sistema ios e android e demais indicadores relevantes para um diagnóstico completo do dispositivo.</p>
 
-  <div class="ceo-line"><span>dev — <b>kernel bypass</b></span></div>
+  <div class="ceo-line"><span>eyes of god — <b>forensic scanner</b></span></div>
   <div class="discord-link">
     <p>Em caso de dúvidas ou falso positivo, acione nossa equipe de suporte em nosso Discord.</p>
     <a href="https://discord.gg/xqW2bS8Ann" target="_blank" rel="noopener">
@@ -134,7 +143,7 @@
       <div class="ios-stats">
         <div class="ios-stat"><div class="ios-stat-val" id="iosAppsCount">0</div><div class="ios-stat-label">apps instalados</div></div>
         <div class="ios-stat"><div class="ios-stat-val" id="iosAlertCount">0</div><div class="ios-stat-label">alertas</div></div>
-        <div class="ios-stat"><div class="ios-stat-val" id="iosProfileCount">0</div><div class="ios-stat-label">perfis mdm</div></div>
+        <div class="ios-stat"><div class="ios-stat-val" id="iosProfileCount">0</div><div class="ios-stat-label">achados reais</div></div>
       </div>
       <div class="ios-summary" id="iosSummary">0 perfis encontrados.</div>
       <div class="ios-events" id="iosEvents"></div>
@@ -146,9 +155,9 @@
 
   <div class="scan-counter">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-    <span>+<b id="scanCount">656</b> usos</span>
+    <span>+<b id="scanCount">0</b> usos locais</span>
   </div>
-  <div class="foot"><span style="color:var(--gold-soft);">kernel bypass</span></div>
+  <div class="foot"><span style="color:var(--gold-soft);">criado por kernel bypass · eyes of god</span></div>
 </div>
 
 <!-- Bibliotecas para ler .zip e .tar.gz direto no navegador -->

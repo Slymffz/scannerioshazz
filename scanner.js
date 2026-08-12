@@ -15,21 +15,104 @@
     document.head.appendChild(style);
   })();
 
-  // ============ NAVEGAÇÃO (sem login — só landing -> scanner) ============
-  function enterScanner() {
-    var landing = document.getElementById('landingScreen');
-    landing.style.opacity = '0';
-    landing.style.transition = 'opacity 0.3s';
-    setTimeout(function(){ landing.style.display = 'none'; }, 300);
-    document.getElementById('mainWrap').classList.add('unlocked');
+  // ============ LOGIN POR KEY + ESCOLHA DE PLATAFORMA ============
+  var KEYS_URL = 'https://raw.githubusercontent.com/Slymffz/scannerioshazz/refs/heads/main/keys.json';
+  var loginScreen = document.getElementById('loginScreen');
+  var modeScreen = document.getElementById('modeScreen');
+  var mainWrap = document.getElementById('mainWrap');
+  var accessForm = document.getElementById('accessForm');
+  var accessKeyInput = document.getElementById('accessKey');
+  var authorizeBtn = document.getElementById('authorizeBtn');
+  var accessMessage = document.getElementById('accessMessage');
+  var activeMode = null;
+  window.__EOG_MODE = null;
+
+  function showAccessMessage(text, ok) {
+    if (!accessMessage) return;
+    accessMessage.textContent = text;
+    accessMessage.style.color = ok ? '#86c777' : '#ef8787';
+  }
+
+  function keyIsCurrent(record) {
+    if (record.active === false) return false;
+    if (!record.expires_at || String(record.expires_at).toLowerCase() === 'null') return true;
+    var expires = Date.parse(record.expires_at);
+    return Number.isFinite(expires) && expires > Date.now();
+  }
+
+  function readKeyRecord(value) {
+    return fetch(KEYS_URL, { cache: 'no-store' }).then(function(response) {
+      if (!response.ok) throw new Error('Não foi possível consultar as keys agora.');
+      return response.json();
+    }).then(function(data) {
+      var list = Array.isArray(data) ? data : data.keys;
+      var normalized = String(value || '').trim().toUpperCase();
+      var record = Array.isArray(list) ? list.find(function(item) { return String(item.key || '').toUpperCase() === normalized; }) : null;
+      if (!record) throw new Error('Key inválida.');
+      if (!keyIsCurrent(record)) throw new Error(record.active === false ? 'Esta key foi desativada.' : 'Esta key expirou.');
+      return record;
+    });
+  }
+
+  function showModeScreen() {
+    loginScreen.style.display = 'none';
+    modeScreen.hidden = false;
+    modeScreen.style.display = 'grid';
+    mainWrap.style.display = 'none';
+  }
+
+  function openScanner(mode) {
+    activeMode = mode;
+    window.__EOG_MODE = mode;
+    modeScreen.hidden = true;
+    modeScreen.style.display = 'none';
+    mainWrap.style.display = 'block';
+    mainWrap.classList.add('unlocked', 'eog-mode-active');
     startMatrixRain();
   }
 
-  var enterBtn = document.getElementById('enterScannerBtn');
-  if (enterBtn) enterBtn.addEventListener('click', enterScanner);
+  function backToLogin() {
+    sessionStorage.removeItem('eog-access-session');
+    activeMode = null;
+    window.__EOG_MODE = null;
+    mainWrap.style.display = 'none';
+    mainWrap.classList.remove('unlocked', 'eog-mode-active');
+    modeScreen.hidden = true;
+    modeScreen.style.display = 'none';
+    loginScreen.style.display = 'grid';
+    accessKeyInput.value = '';
+    authorizeBtn.disabled = false;
+    authorizeBtn.textContent = 'AUTORIZAR ACESSO　›';
+    showAccessMessage('', false);
+  }
 
+  if (accessForm) accessForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+    var value = accessKeyInput.value.trim();
+    if (!value) { showAccessMessage('Digite sua key de acesso.', false); return; }
+    authorizeBtn.disabled = true;
+    authorizeBtn.textContent = 'VALIDANDO...';
+    showAccessMessage('Consultando acesso...', true);
+    readKeyRecord(value).then(function(record) {
+      sessionStorage.setItem('eog-access-session', JSON.stringify({ key: record.key, plan: record.plan || 'acesso', user: record.user || '', loggedAt: Date.now() }));
+      showAccessMessage('Acesso autorizado.', true);
+      setTimeout(showModeScreen, 220);
+    }).catch(function(error) {
+      showAccessMessage(error.message || 'Falha ao validar a key.', false);
+      authorizeBtn.disabled = false;
+      authorizeBtn.textContent = 'AUTORIZAR ACESSO　›';
+    });
+  });
+
+  document.querySelectorAll('[data-mode]').forEach(function(button) {
+    button.addEventListener('click', function() { openScanner(button.getAttribute('data-mode')); });
+  });
+  var backToLoginButton = document.getElementById('backToLogin');
+  if (backToLoginButton) backToLoginButton.addEventListener('click', backToLogin);
   var logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) logoutBtn.addEventListener('click', function() { location.reload(); });
+  if (logoutBtn) logoutBtn.addEventListener('click', function() { backToLogin(); });
+
+  if (sessionStorage.getItem('eog-access-session')) showModeScreen();
 
   // ============ CHUVA DE CÓDIGO BINÁRIO (canvas de fundo, sutil) ============
   var matrixStarted = false;
@@ -461,7 +544,13 @@
           setProgress(pct, 'Lendo arquivo... ' + pct + '%');
         }
       };
-      reader.onload = function() { analyzeFiles([{ path: file.name, content: reader.result }]); };
+      reader.onload = function() {
+        if (window.__EOG_MODE === 'ios') {
+          handleIOSArchive({ paths: [file.name], read: function() { return Promise.resolve(String(reader.result || '')); } });
+        } else {
+          analyzeFiles([{ path: file.name, content: reader.result }]);
+        }
+      };
       reader.onerror = function() {
         showError('Não foi possível ler o arquivo.');
         dropEl.style.display = 'block';
@@ -590,6 +679,8 @@
     var isIOS = archive.paths.some(function(p) {
       return /SystemVersion\.plist$/i.test(p) || /^sysdiagnose_/i.test(p) || /system_logs\.logarchive/i.test(p);
     });
+    if (window.__EOG_MODE === 'ios') isIOS = true;
+    if (window.__EOG_MODE === 'android') isIOS = false;
 
     if (isIOS) {
       handleIOSArchive(archive);
@@ -765,11 +856,13 @@
             // Não retorna aqui, pois kbdebug pode conter outras chaves úteis se for texto legível
           }
 
-          // Processamento normal para os outros arquivos
+          // Processamento normal: somente identificadores que realmente batem na base iOS.
+          // Chaves genéricas de plist e números longos não viram perfis suspeitos.
           var keyRe = /<key>([^<]+)<\/key>/g;
           var km;
           while ((km = keyRe.exec(txt))) {
-            var k = km[1];
+            var k = km[1].trim();
+            if (!matchIOSKey(k)) continue;
             allKeys.add(k);
             if (!keySources[k]) keySources[k] = [];
             if (!keySources[k].some(function(s) { return s.path === p; })) {
@@ -784,6 +877,7 @@
             var tm;
             while ((tm = tokenRe.exec(txt))) {
               var tok = tm[0];
+              if (/^\d+$/.test(tok) || !matchIOSKey(tok)) continue;
               if (!allKeys.has(tok)) {
                 allKeys.add(tok);
                 if (!keySources[tok]) keySources[tok] = [];
@@ -879,6 +973,10 @@
   function looksLikeHash(key) {
     if (STANDARD_UUID_RE.test(key)) return false; // UUID padrão do iOS: nunca é o hash de proxy
     var stripped = key.replace(/[-._\s]/g, '');
+    if (/^\d+$/.test(stripped)) return false; // número de crash/telemetria, nunca um hash de perfil
+    // Os identificadores válidos de Proxy têm composição mista. Uma sequência só com
+    // maiúsculas e números é dump/telemetria e não deve gerar alerta.
+    if (!/[A-Z]/.test(stripped) || !/[a-z]/.test(stripped) || !/\d/.test(stripped)) return false;
     return stripped.length >= MIN_HASH_LENGTH && /^[0-9a-fA-F]+$/.test(stripped);
   }
 
@@ -982,7 +1080,7 @@
 
       iosAppsCount.textContent = '0';
       iosAlertCount.textContent = String(totalAlerts);
-      iosProfileCount.textContent = String(allKeys.size);
+      iosProfileCount.textContent = String(totalAlerts);
 
       iosEvents.innerHTML = '';
 
